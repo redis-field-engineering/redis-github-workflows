@@ -4,9 +4,17 @@ on:
   workflow_call:
     inputs:
       jreleaser-version:
-        description: 'JReleaser version'
         default: 'early-access'
         required: false
+    secrets:
+      github-token:
+        required: true
+      gpg-passphrase:
+        required: true
+      gpg-public-key:
+        required: true
+      gpg-secret-key:
+        required: true
 
 jobs:
   earlyaccess:
@@ -58,10 +66,10 @@ jobs:
           version: ${{ inputs.jreleaser-version }}
         env:
           JRELEASER_PROJECT_VERSION: ${{ steps.vars.outputs.version }}
-          JRELEASER_GITHUB_TOKEN: ${{ secrets.GIT_ACCESS_TOKEN }}
-          JRELEASER_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-          JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.GPG_PUBLIC_KEY }}
-          JRELEASER_GPG_SECRET_KEY: ${{ secrets.GPG_SECRET_KEY }}
+          JRELEASER_GITHUB_TOKEN: ${{ secrets.github-token }}
+          JRELEASER_GPG_PASSPHRASE: ${{ secrets.gpg-passphrase }}
+          JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.gpg-public-key }}
+          JRELEASER_GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
 
       - name: JReleaser output
         if: always()
