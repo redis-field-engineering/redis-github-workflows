@@ -4,16 +4,13 @@ on:
   workflow_call:
     inputs:
       branch:
-        description: 'Release branch'
         default: 'main'
         required: false
         type: string
       version:
-        description: 'Release version'
         required: true
         type: string
       jreleaser-version:
-        description: 'JReleaser version'
         default: 'early-access'
         required: false
         type: string
