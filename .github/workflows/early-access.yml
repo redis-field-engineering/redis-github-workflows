@@ -6,6 +6,7 @@ on:
       jreleaser-version:
         default: 'early-access'
         required: false
+        type: string
     secrets:
       github-token:
         required: true
