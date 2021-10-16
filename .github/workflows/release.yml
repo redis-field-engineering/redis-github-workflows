@@ -14,6 +14,29 @@ on:
         default: 'early-access'
         required: false
         type: string
+    secrets:
+      github-token:
+        required: true
+      gpg-passphrase:
+        required: true
+      gpg-public-key:
+        required: true
+      gpg-secret-key:
+        required: true
+      gpg-key-id:
+        required: true
+      gradle-publish_key:
+        required: true
+      gradle-publish_secret:
+        required: true
+      twitter-consumer-key:
+        required: true
+      twitter-consumer-secret:
+        required: true
+      twitter-access-token:
+        required: true
+      twitter-access-token-secret:
+        required: true
 
 jobs:
   release:
@@ -57,11 +80,11 @@ jobs:
 
       - name: Deploy
         env:
-          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-          GPG_SECRET_KEY: ${{ secrets.GPG_SECRET_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
-          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+          GPG_KEY_ID: ${{ secrets.gpg-key-id }}
+          GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
+          GPG_PASSPHRASE: ${{ secrets.gpg-passphrase }}
+          GRADLE_PUBLISH_KEY: ${{ secrets.gralde-publish-key }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.gradle-publish-secret }}
         run: ./gradlew -Prelease=true -Pfull-release=true publishPlugins -S
 
       - name: Set up Java 11
@@ -76,15 +99,15 @@ jobs:
           arguments: full-release
           version: ${{ inputs.jreleaser-version }}
         env:
-          JRELEASER_PROJECT_VERSION: ${{ github.event.inputs.version }}
-          JRELEASER_GITHUB_TOKEN: ${{ secrets.GIT_ACCESS_TOKEN }}
-          JRELEASER_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-          JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.GPG_PUBLIC_KEY }}
-          JRELEASER_GPG_SECRET_KEY: ${{ secrets.GPG_SECRET_KEY }}
-          JRELEASER_TWITTER_CONSUMER_KEY: ${{ secrets.TWITTER_CONSUMER_KEY }}
-          JRELEASER_TWITTER_CONSUMER_SECRET: ${{ secrets.TWITTER_CONSUMER_SECRET }}
-          JRELEASER_TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
-          JRELEASER_TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
+          JRELEASER_PROJECT_VERSION: ${{ inputs.version }}
+          JRELEASER_GITHUB_TOKEN: ${{ secrets.github-token }}
+          JRELEASER_GPG_PASSPHRASE: ${{ secrets.gpg-passphrase }}
+          JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.gpg-public-key }}
+          JRELEASER_GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
+          JRELEASER_TWITTER_CONSUMER_KEY: ${{ secrets.twitter-consumer-key }}
+          JRELEASER_TWITTER_CONSUMER_SECRET: ${{ secrets.twitter-consumer-secret }}
+          JRELEASER_TWITTER_ACCESS_TOKEN: ${{ secrets.twitter-access-token }}
+          JRELEASER_TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.twitter-access-token-secret }}
 
       - name: JReleaser output
         if: always()
