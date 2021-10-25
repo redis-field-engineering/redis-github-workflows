@@ -25,9 +25,9 @@ on:
         required: true
       gpg-key-id:
         required: true
-      gradle-publish_key:
+      gradle-publish-key:
         required: true
-      gradle-publish_secret:
+      gradle-publish-secret:
         required: true
       twitter-consumer-key:
         required: true
@@ -83,7 +83,7 @@ jobs:
           GPG_KEY_ID: ${{ secrets.gpg-key-id }}
           GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
           GPG_PASSPHRASE: ${{ secrets.gpg-passphrase }}
-          GRADLE_PUBLISH_KEY: ${{ secrets.gralde-publish-key }}
+          GRADLE_PUBLISH_KEY: ${{ secrets.gradle-publish-key }}
           GRADLE_PUBLISH_SECRET: ${{ secrets.gradle-publish-secret }}
         run: ./gradlew -Prelease=true -Pfull-release=true publishPlugins -S
 
