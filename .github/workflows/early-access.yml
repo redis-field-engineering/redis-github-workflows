@@ -22,6 +22,10 @@ jobs:
     name: 'Early Access'
     runs-on: ubuntu-latest
     steps:
+      - uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.github-token }}
+
       - name: Checkout
         uses: actions/checkout@v3
         with:
