@@ -14,6 +14,10 @@ on:
         default: 'early-access'
         required: false
         type: string
+      maven-central:
+        default: false
+        required: false
+        type: boolean
     secrets:
       github-token:
         required: true
@@ -43,27 +47,27 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       - name: Set up Java 8
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           java-version: 8
           distribution: 'zulu'
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-cache-${{ hashFiles('**/*.gradle') }}-${{ hashFiles('**/gradle.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}-${{ hashFiles('**/gradle.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('**/gradlew') }}
+          key: ${{ runner.os }}-gradlew-${{ hashFiles('**/gradlew') }}
           restore-keys: |
             ${{ runner.os }}-gradlew-
 
@@ -78,7 +82,8 @@ jobs:
           git commit -a -m "Releasing version $VERSION"
           git push origin ${{ inputs.branch }}
 
-      - name: Deploy
+      - name: Deploy to Plugin Portal
+        if: ${{ inputs.maven-central }} == false
         env:
           GPG_KEY_ID: ${{ secrets.gpg-key-id }}
           GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
@@ -86,6 +91,16 @@ jobs:
           GRADLE_PUBLISH_KEY: ${{ secrets.gradle-publish-key }}
           GRADLE_PUBLISH_SECRET: ${{ secrets.gradle-publish-secret }}
         run: ./gradlew -Prelease=true -Pfull-release=true publishPlugins -S
+
+      - name: Deploy to Plugin Portal and Maven Central
+        if: ${{ inputs.maven-central }} == true
+        env:
+          GPG_KEY_ID: ${{ secrets.gpg-key-id }}
+          GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
+          GPG_PASSPHRASE: ${{ secrets.gpg-passphrase }}
+          GRADLE_PUBLISH_KEY: ${{ secrets.gradle-publish-key }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.gradle-publish-secret }}
+        run: ./gradlew -Prelease=true -Pfull-release=true publishToSonatype publishPlugins -S
 
       - name: Release
         uses: jreleaser/release-action@v2
@@ -105,7 +120,7 @@ jobs:
 
       - name: JReleaser output
         if: always()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: artifact
           path: |
