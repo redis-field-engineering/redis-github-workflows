@@ -2,6 +2,11 @@ name: Build
 
 on:
   workflow_call:
+    inputs:
+      java-version:
+        default: '8'
+        required: false
+        type: string
 
 jobs:
   build:
@@ -19,7 +24,7 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
-          java-version: 8
+          java-version: ${{ inputs.java-version }}
           distribution: 'zulu'
 
       - uses: actions/cache@v3

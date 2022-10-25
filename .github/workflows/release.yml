@@ -14,6 +14,10 @@ on:
         default: 'early-access'
         required: false
         type: string
+      java-version:
+        default: '8'
+        required: false
+        type: string
     secrets:
       github-token:
         required: true
@@ -51,10 +55,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Java 8
+      - name: Set up Java
         uses: actions/setup-java@v3
         with:
-          java-version: 8
+          java-version: ${{ inputs.java-version }}
           distribution: 'zulu'
 
       - uses: actions/cache@v3
