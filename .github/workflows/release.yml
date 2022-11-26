@@ -111,6 +111,7 @@ jobs:
           JRELEASER_TWITTER_CONSUMER_SECRET: ${{ secrets.twitter-consumer-secret }}
           JRELEASER_TWITTER_ACCESS_TOKEN: ${{ secrets.twitter-access-token }}
           JRELEASER_TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.twitter-access-token-secret }}
+          JRELEASER_MASTODON_ACCESS_TOKEN: ${{ secrets.MASTODON_ACCESS_TOKEN }}
 
       - name: JReleaser output
         if: always()
