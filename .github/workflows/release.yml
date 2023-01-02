@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       branch:
-        default: 'main'
+        default: 'master'
         required: false
         type: string
       version:
@@ -15,7 +15,7 @@ on:
         required: false
         type: string
       java-version:
-        default: '8'
+        default: '11'
         required: false
         type: string
     secrets:
@@ -27,22 +27,14 @@ on:
         required: true
       gpg-secret-key:
         required: true
-      gpg-key-id:
-        required: true
-      gradle-publish-key:
-        required: true
-      gradle-publish-secret:
-        required: true
-      twitter-consumer-key:
-        required: true
-      twitter-consumer-secret:
-        required: true
-      twitter-access-token:
-        required: true
-      twitter-access-token-secret:
-        required: true
-      mastodon-access-token:
-        required: true
+      docker-username:
+        required: false
+      docker-password:
+        required: false
+      sonatype-username:
+        required: false
+      sonatype-password:
+        required: false
 
 jobs:
   release:
@@ -90,14 +82,10 @@ jobs:
           git commit -a -m "Releasing version $VERSION"
           git push origin ${{ inputs.branch }}
 
-      - name: Deploy to Plugin Portal
-        env:
-          GPG_KEY_ID: ${{ secrets.gpg-key-id }}
-          GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
-          GPG_PASSPHRASE: ${{ secrets.gpg-passphrase }}
-          GRADLE_PUBLISH_KEY: ${{ secrets.gradle-publish-key }}
-          GRADLE_PUBLISH_SECRET: ${{ secrets.gradle-publish-secret }}
-        run: ./gradlew -Prelease=true -Pfull-release=true -PreproducibleBuild=true publishPlugins -S
+      - name: Build
+        run: |
+          ./gradlew -Pprofile=release -PreproducibleBuild=true publish -S
+          ./gradlew cleanupStagedRepository
 
       - name: Release
         uses: jreleaser/release-action@v2
@@ -111,11 +99,10 @@ jobs:
           JRELEASER_GPG_PASSPHRASE: ${{ secrets.gpg-passphrase }}
           JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.gpg-public-key }}
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
-          JRELEASER_TWITTER_CONSUMER_KEY: ${{ secrets.twitter-consumer-key }}
-          JRELEASER_TWITTER_CONSUMER_SECRET: ${{ secrets.twitter-consumer-secret }}
-          JRELEASER_TWITTER_ACCESS_TOKEN: ${{ secrets.twitter-access-token }}
-          JRELEASER_TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.twitter-access-token-secret }}
-          JRELEASER_MASTODON_ACCESS_TOKEN: ${{ secrets.mastodon-access-token }}
+          JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.docker-username }}
+          JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
+          JRELEASER_NEXUS2_MAVEN_CENTRAL_USERNAME: ${{ secrets.sonatype-username }}
+          JRELEASER_NEXUS2_MAVEN_CENTRAL_PASSWORD: ${{ secrets.sonatype-password }}
 
       - name: JReleaser output
         if: always()
