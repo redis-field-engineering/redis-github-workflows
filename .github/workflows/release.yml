@@ -81,7 +81,15 @@ jobs:
 
       - name: Build
         run: |
-          ./gradlew -Pprofile=release -PreproducibleBuild=true build publish -S
+          ./gradlew -Pprofile=release -PreproducibleBuild=true build aggregateTestReports publish -S
+          
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-reports
+          path: |
+            build/reports/aggregate-tests/
           
       - name: Commit release version
         run: |
