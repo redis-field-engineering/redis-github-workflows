@@ -86,8 +86,7 @@ jobs:
 
       - name: Build
         run: |
-          ./gradlew -Pprofile=release -PreproducibleBuild=true publish -S
-          ./gradlew cleanupStagedRepository
+          ./gradlew -Pprofile=release -PreproducibleBuild=true build publish -S
 
       - name: Release
         uses: jreleaser/release-action@v2
