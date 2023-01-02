@@ -57,7 +57,18 @@ jobs:
           restore-keys: ${{ runner.os }}-gradlew-
 
       - name: Build
-        run: ./gradlew -Prelease=true -PreproducibleBuild=true build -S
+        run: ./gradlew -Prelease=true -PreproducibleBuild=true build aggregateTestReports aggregateJacocoReport -S
+        
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-reports
+          path: |
+            build/reports/aggregate-tests/
+  
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
 
       - name: Version
         id: vars
