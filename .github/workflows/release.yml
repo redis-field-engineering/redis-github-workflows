@@ -11,7 +11,7 @@ on:
         required: true
         type: string
       jreleaser-version:
-        default: 'early-access'
+        default: 'latest'
         required: false
         type: string
       java-version:
