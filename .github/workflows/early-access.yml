@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       jreleaser-version:
-        default: 'latest'
+        default: 'early-access'
         required: false
         type: string
       java-version:

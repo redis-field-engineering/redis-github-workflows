@@ -11,7 +11,7 @@ on:
         required: true
         type: string
       jreleaser-version:
-        default: 'latest'
+        default: 'early-access'
         required: false
         type: string
       java-version:
@@ -105,8 +105,8 @@ jobs:
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
           JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.docker-username }}
           JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
-          JRELEASER_NEXUS2_MAVEN_CENTRAL_USERNAME: ${{ secrets.sonatype-username }}
-          JRELEASER_NEXUS2_MAVEN_CENTRAL_PASSWORD: ${{ secrets.sonatype-password }}
+          JRELEASER_NEXUS2_USERNAME: ${{ secrets.sonatype-username }}
+          JRELEASER_NEXUS2_PASSWORD: ${{ secrets.sonatype-password }}
           JRELEASER_SLACK_WEBHOOK: ${{ secrets.slack-webhook }}
 
       - name: Commit release version
