@@ -95,6 +95,7 @@ jobs:
         uses: jreleaser/release-action@v2
         with:
           arguments: full-release
+          version: ${{ inputs.jreleaser-version }}
         env:
           JRELEASER_PROJECT_VERSION: ${{ inputs.version }}
           JRELEASER_GITHUB_TOKEN: ${{ secrets.github-token }}
