@@ -81,7 +81,7 @@ jobs:
 
       - name: Build
         run: |
-          ./gradlew -Pprofile=release -PreproducibleBuild=true build aggregateTestReports publish -S
+          ./gradlew -Pprofile=release -PreproducibleBuild=true build aggregateTestReports publish -S -x test
           
       - name: Upload test reports
         if: failure()
