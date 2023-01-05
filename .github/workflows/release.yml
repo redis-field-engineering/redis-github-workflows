@@ -91,6 +91,13 @@ jobs:
           path: |
             build/reports/aggregate-tests/
 
+      - name: Assemble
+        uses: jreleaser/release-action@v2
+        with:
+          arguments: assemble
+        env:
+          JRELEASER_PROJECT_VERSION: ${{ inputs.version }}
+
       - name: Release
         uses: jreleaser/release-action@v2
         with:
@@ -105,18 +112,9 @@ jobs:
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
           JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.docker-username }}
           JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
-          JRELEASER_NEXUS2_USERNAME: ${{ secrets.sonatype-username }}
-          JRELEASER_NEXUS2_PASSWORD: ${{ secrets.sonatype-password }}
+          JRELEASER_NEXUS2_MAVEN_CENTRAL_USERNAME: ${{ secrets.sonatype-username }}
+          JRELEASER_NEXUS2_MAVEN_CENTRAL_PASSWORD: ${{ secrets.sonatype-password }}
           JRELEASER_SLACK_WEBHOOK: ${{ secrets.slack-webhook }}
-
-      - name: Commit release version
-        run: |
-          VERSION=${{ inputs.version }}
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "GitHub Action"
-          git add VERSION README.adoc
-          git commit -a -m "Releasing version $VERSION"
-          git push origin ${{ inputs.branch }}
 
       - name: JReleaser output
         if: always()
@@ -126,3 +124,12 @@ jobs:
           path: |
             out/jreleaser/
             build/
+
+      - name: Commit release version
+        run: |
+          VERSION=${{ inputs.version }}
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "GitHub Action"
+          git add VERSION README.adoc
+          git commit -a -m "Releasing version $VERSION"
+          git push origin ${{ inputs.branch }}
