@@ -90,6 +90,11 @@ jobs:
           name: test-reports
           path: |
             build/reports/aggregate-tests/
+            
+      - name: Pomchecker workaround
+        run: |
+          mkdir -p ~/.kordamp/caches/pomchecker/1.4.0
+          echo 3 >> ~/.kordamp/caches/pomchecker/1.4.0/marker.txt
 
       - name: Assemble
         uses: jreleaser/release-action@v2
