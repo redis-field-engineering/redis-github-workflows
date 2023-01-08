@@ -90,11 +90,6 @@ jobs:
           name: test-reports
           path: |
             build/reports/aggregate-tests/
-            
-      - name: Pomchecker workaround
-        run: |
-          mkdir -p ~/.kordamp/caches/pomchecker/1.4.0
-          echo 3 >> ~/.kordamp/caches/pomchecker/1.4.0/marker.txt
 
       - name: Assemble
         uses: jreleaser/release-action@v2
@@ -117,8 +112,8 @@ jobs:
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
           JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.docker-username }}
           JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
-          JRELEASER_NEXUS2_MAVEN_CENTRAL_USERNAME: ${{ secrets.sonatype-username }}
-          JRELEASER_NEXUS2_MAVEN_CENTRAL_PASSWORD: ${{ secrets.sonatype-password }}
+          JRELEASER_NEXUS2_USERNAME: ${{ secrets.sonatype-username }}
+          JRELEASER_NEXUS2_PASSWORD: ${{ secrets.sonatype-password }}
           JRELEASER_SLACK_WEBHOOK: ${{ secrets.slack-webhook }}
 
       - name: JReleaser output
@@ -127,8 +122,8 @@ jobs:
         with:
           name: artifact
           path: |
-            out/jreleaser/
-            build/
+            out/jreleaser/trace.log
+            out/jreleaser/output.properties
 
       - name: Commit release version
         run: |
