@@ -7,6 +7,10 @@ on:
         default: 'early-access'
         required: false
         type: string
+      jreleaser-arguments:
+        default: 'release'
+        required: false
+        type: string
       java-version:
         default: '11'
         required: false
@@ -83,7 +87,7 @@ jobs:
       - name: Release
         uses: jreleaser/release-action@v2
         with:
-          arguments: release
+          arguments: ${{ inputs.jreleaser-arguments }}
           version: ${{ inputs.jreleaser-version }}
         env:
           JRELEASER_PROJECT_VERSION: ${{ steps.vars.outputs.VERSION }}
