@@ -48,7 +48,8 @@ jobs:
         with:
           access_token: ${{ secrets.github-token }}
 
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
         with:
           ref: ${{ inputs.branch }}
           fetch-depth: 0
@@ -81,8 +82,8 @@ jobs:
 
       - name: Build
         run: |
-          ./gradlew -Pprofile=release -PreproducibleBuild=true build aggregateTestReports publish -S -x test
-          
+          ./gradlew -Pprofile=release -PreproducibleBuild=true build aggregateTestReports publish -S
+
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v3
