@@ -24,6 +24,10 @@ on:
         required: true
       gpg-secret-key:
         required: true
+      sonatype-username:
+        required: false
+      sonatype-password:
+        required: false
       docker-username:
         required: false
       docker-password:
