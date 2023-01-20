@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       java-version:
-        default: '8'
+        default: '11'
         required: false
         type: string
 
@@ -37,4 +37,12 @@ jobs:
           restore-keys: ${{ runner.os }}-gradlew-
 
       - name: Build
-        run: ./gradlew build -S
+        run: ./gradlew build aggregateTestReports -S
+        
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-reports
+          path: |
+            build/reports/aggregate-tests/
