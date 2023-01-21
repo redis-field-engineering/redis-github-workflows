@@ -32,6 +32,8 @@ on:
         required: false
       docker-password:
         required: false
+      slack-webhook:
+        required: false
 
 jobs:
   earlyaccess:
@@ -104,6 +106,7 @@ jobs:
           JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
           JRELEASER_NEXUS2_USERNAME: ${{ secrets.sonatype-username }}
           JRELEASER_NEXUS2_PASSWORD: ${{ secrets.sonatype-password }}
+          JRELEASER_SLACK_WEBHOOK: ${{ secrets.slack-webhook }}
 
       - name: JReleaser output
         if: always()
