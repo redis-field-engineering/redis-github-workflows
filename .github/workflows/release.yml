@@ -96,6 +96,7 @@ jobs:
         uses: jreleaser/release-action@v2
         with:
           arguments: assemble
+          version: ${{ inputs.jreleaser-version }}
         env:
           JRELEASER_PROJECT_VERSION: ${{ inputs.version }}
 
