@@ -1,4 +1,4 @@
-name: 'Early Access'
+name: 'Benchmark'
 
 on:
   workflow_call:
@@ -17,7 +17,7 @@ on:
 
 jobs:
   earlyaccess:
-    name: 'Early Access'
+    name: 'Benchmark'
     runs-on: ubuntu-latest
     steps:
       - name: Cancel previous run
