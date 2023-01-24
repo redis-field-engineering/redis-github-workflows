@@ -55,7 +55,6 @@ jobs:
           ./gradlew jmh -S
 
       - name: Upload benchmark report
-        if: failure()
         uses: actions/upload-artifact@v3
         with:
           name: benchmark-report
