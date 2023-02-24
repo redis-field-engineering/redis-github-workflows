@@ -1,8 +1,12 @@
-name: 'Benchmark'
+name: Benchmark
 
 on:
   workflow_call:
     inputs:
+      branch:
+        default: 'master'
+        required: false
+        type: string
       java-version:
         default: '19'
         required: false
@@ -16,8 +20,8 @@ on:
         required: true
 
 jobs:
-  earlyaccess:
-    name: 'Benchmark'
+  benchmark:
+    name: Benchmark
     runs-on: ubuntu-latest
     steps:
       - name: Cancel previous run
@@ -28,6 +32,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
+          ref: ${{ inputs.branch }}
           fetch-depth: 0
 
       - name: Set up Java
