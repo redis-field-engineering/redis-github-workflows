@@ -19,6 +19,10 @@ on:
         default: '11'
         required: false
         type: string
+      publish:
+        default: false
+        required: true
+        type: boolean
     secrets:
       github-token:
         required: true
@@ -120,6 +124,13 @@ jobs:
           path: |
             out/jreleaser/trace.log
             out/jreleaser/output.properties
+            
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ inputs.publish }} == true
+        with:
+          github_token: ${{ secrets.github-token }}
+          publish_dir: ./target/generated-docs
 
       - name: Commit release version
         run: |
