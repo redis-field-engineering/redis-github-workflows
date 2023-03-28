@@ -65,7 +65,8 @@ jobs:
         with:
           path: ~/.gradle/caches
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}-${{ hashFiles('**/gradle.properties') }}
-          restore-keys: ${{ runner.os }}-gradle-
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: Cache Gradle wrapper
         uses: actions/cache@v3
@@ -78,7 +79,6 @@ jobs:
         run: |
           VERSION=${{ inputs.version }}
           echo $VERSION > VERSION
-          sed -i -e "s/^\:project-version\:\ .*/:project-version: ${VERSION}/g" README.adoc
 
       - name: Build
         run: |
@@ -130,6 +130,7 @@ jobs:
       - name: Commit release version
         run: |
           VERSION=${{ inputs.version }}
+          sed -i -e "s/^\:project-version\:\ +.*/:project-version:    $VERSION/g" README.adoc
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --global user.name "GitHub Action"
           git add VERSION README.adoc

@@ -27,7 +27,8 @@ jobs:
         with:
           path: ~/.gradle/caches
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}-${{ hashFiles('**/gradle.properties') }}
-          restore-keys: ${{ runner.os }}-gradle-
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: Cache Gradle wrapper
         uses: actions/cache@v3
@@ -37,7 +38,8 @@ jobs:
           restore-keys: ${{ runner.os }}-gradlew-
 
       - name: Build
-        run: ./gradlew build aggregateTestReports -S
+        run: |
+          ./gradlew build aggregateTestReports -S
         
       - name: Upload test reports
         if: failure()

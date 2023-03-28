@@ -8,6 +8,7 @@ on:
         required: false
         type: string
       version:
+        description: "Release version"      
         required: true
         type: string
       jreleaser-version:
@@ -70,7 +71,7 @@ jobs:
 
       - name: Set release version
         run: |
-          VERSION=${{ github.event.inputs.version }}
+          VERSION=${{ inputs.version }}
           ./mvnw versions:set -DnewVersion=$VERSION
 
       - name: Build
@@ -82,7 +83,8 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: test-reports
-          path: target/
+          path: |
+            target/
 
       - name: Assemble
         uses: jreleaser/release-action@v2
@@ -121,11 +123,10 @@ jobs:
 
       - name: Commit release version
         run: |
-          VERSION=${{ github.event.inputs.version }}
-          sed -i -e "s/^\:project-version\:\ \ \ \ .*/:project-version:    $VERSION/g" README.adoc
-          git add pom.xml
-          git add README.adoc
+          VERSION=${{ inputs.version }}
+          sed -i -e "s/^\:project-version\:\ +.*/:project-version:    $VERSION/g" README.adoc
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --global user.name "GitHub Action"
+          git add pom.xml README.adoc
           git commit -a -m "Releasing version $VERSION"
-          git push origin ${{ github.event.inputs.ref }}
+          git push origin ${{ inputs.branch }}
