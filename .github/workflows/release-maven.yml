@@ -136,6 +136,7 @@ jobs:
         run: |
           VERSION=${{ inputs.version }}
           sed -i -e "s/^\:project-version\:\ .*/:project-version: $VERSION/g" README.adoc
+          ./mvnw build-helper:parse-version versions:set -DnewVersion=\${parsedVersion.majorVersion}.\${parsedVersion.minorVersion}.\${parsedVersion.nextIncrementalVersion}-SNAPSHOT
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --global user.name "GitHub Action"
           git add pom.xml README.adoc
