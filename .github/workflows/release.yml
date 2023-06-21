@@ -23,6 +23,8 @@ on:
         required: false
         type: string
     secrets:
+      github-user:
+        required: false
       github-token:
         required: true
       gpg-passphrase:
@@ -87,6 +89,9 @@ jobs:
       - name: Build
         run: |
           ./gradlew -Pprofile=release -PreproducibleBuild=true ${{ inputs.tasks }} -S
+        env:
+          GRGIT_USER: ${{ secrets.github-user }}
+          GRGIT_PASS: ${{ secrets.github-token }}
 
       - name: Upload test reports
         if: failure()
