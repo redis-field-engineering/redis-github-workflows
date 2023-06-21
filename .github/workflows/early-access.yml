@@ -15,6 +15,10 @@ on:
         default: '11'
         required: false
         type: string
+      tasks:
+        default: 'build aggregateTestReports aggregateJacocoReport'
+        required: false
+        type: string
     secrets:
       github-token:
         required: true
@@ -73,7 +77,7 @@ jobs:
 
       - name: Build
         run: |
-          ./gradlew -Prelease=true -PreproducibleBuild=true build aggregateTestReports aggregateJacocoReport -S
+          ./gradlew -Prelease=true -PreproducibleBuild=true ${{ inputs.tasks }} -S
 
       - name: Upload test reports
         if: failure()
