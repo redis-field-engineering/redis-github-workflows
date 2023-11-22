@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       java-version:
-        default: '8'
+        default: '21'
         required: false
         type: string
 

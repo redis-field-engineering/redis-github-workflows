@@ -16,7 +16,7 @@ on:
         required: false
         type: string
       java-version:
-        default: '11'
+        default: '21'
         required: false
         type: string
       publish:

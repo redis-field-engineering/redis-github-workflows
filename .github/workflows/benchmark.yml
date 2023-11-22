@@ -8,7 +8,7 @@ on:
         required: false
         type: string
       java-version:
-        default: '19'
+        default: '21'
         required: false
         type: string
       jmh-results-path:
