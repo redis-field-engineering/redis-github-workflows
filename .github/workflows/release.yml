@@ -81,10 +81,16 @@ jobs:
           key: ${{ runner.os }}-gradlew-${{ hashFiles('**/gradlew') }}
           restore-keys: ${{ runner.os }}-gradlew-
 
-      - name: Set release version
+      - name: Version
         run: |
-          VERSION=${{ inputs.version }}
-          echo $VERSION > VERSION
+          echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          echo ${{ inputs.version }} > VERSION
+          git add VERSION
+          sed -i -e "s/^\:project-version\:\ .*/:project-version: ${{ inputs.version }}/g" README.adoc
+          git config --global user.email "${{ secrets.COMMIT_EMAIL }}"
+          git config --global user.name "Julien Ruaux"
+          git commit -a -m "Releasing version ${{ inputs.version }}"
+          git push origin ${{ inputs.branch }}
 
       - name: Build
         run: |
@@ -135,13 +141,3 @@ jobs:
           path: |
             out/jreleaser/trace.log
             out/jreleaser/output.properties
-
-      - name: Commit release version
-        run: |
-          VERSION=${{ inputs.version }}
-          sed -i -e "s/^\:project-version\:\ .*/:project-version: $VERSION/g" README.adoc
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "GitHub Action"
-          git add VERSION README.adoc
-          git commit -a -m "Releasing version $VERSION"
-          git push origin ${{ inputs.branch }}
