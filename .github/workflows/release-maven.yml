@@ -24,6 +24,8 @@ on:
         required: true
         type: boolean
     secrets:
+      github-user:
+        required: false
       github-token:
         required: true
       gpg-passphrase:
@@ -114,6 +116,8 @@ jobs:
           JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
           JRELEASER_NEXUS2_USERNAME: ${{ secrets.sonatype-username }}
           JRELEASER_NEXUS2_PASSWORD: ${{ secrets.sonatype-password }}
+          JRELEASER_GITHUB_USERNAME: ${{ secrets.github-user }}
+          JRELEASER_GITHUB_PASSWORD: ${{ secrets.github-token }}
           JRELEASER_SLACK_WEBHOOK: ${{ secrets.slack-webhook }}
 
       - name: JReleaser output

@@ -20,6 +20,8 @@ on:
         required: false
         type: string
     secrets:
+      github-user:
+        required: false
       github-token:
         required: true
       gpg-passphrase:
@@ -106,15 +108,17 @@ jobs:
           arguments: ${{ inputs.jreleaser-arguments }}
           version: ${{ inputs.jreleaser-version }}
         env:
-          JRELEASER_PROJECT_VERSION: ${{ steps.vars.outputs.VERSION }}
+          JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.docker-username }}
+          JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
+          JRELEASER_GITHUB_PASSWORD: ${{ secrets.github-token }}
           JRELEASER_GITHUB_TOKEN: ${{ secrets.github-token }}
+          JRELEASER_GITHUB_USERNAME: ${{ secrets.github-user }}
           JRELEASER_GPG_PASSPHRASE: ${{ secrets.gpg-passphrase }}
           JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.gpg-public-key }}
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
-          JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.docker-username }}
-          JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
           JRELEASER_NEXUS2_USERNAME: ${{ secrets.sonatype-username }}
           JRELEASER_NEXUS2_PASSWORD: ${{ secrets.sonatype-password }}
+          JRELEASER_PROJECT_VERSION: ${{ steps.vars.outputs.VERSION }}
           JRELEASER_SLACK_WEBHOOK: ${{ secrets.slack-webhook }}
 
       - name: JReleaser output
