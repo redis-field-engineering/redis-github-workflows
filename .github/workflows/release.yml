@@ -86,7 +86,7 @@ jobs:
           echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
           echo ${{ inputs.version }} > VERSION
           git add VERSION
-          sed -i -e "s/^\:project-version\:\ .*/:project-version: ${{ inputs.version }}/g" README.adoc
+          sed -i -e "s/^\:project-version\:\ .*/:project-version:    ${{ inputs.version }}/g" README.adoc
           git config --global user.email "${{ secrets.COMMIT_EMAIL }}"
           git config --global user.name "Julien Ruaux"
           git commit --allow-empty -a -m "Releasing version ${{ inputs.version }}"
