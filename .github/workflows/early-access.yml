@@ -38,6 +38,10 @@ on:
         required: false
       docker-password:
         required: false
+      docker-github-user:
+        required: false
+      docker-github-token:
+        required: false
       slack-webhook:
         required: false
       codecov-token:
@@ -108,8 +112,8 @@ jobs:
           arguments: ${{ inputs.jreleaser-arguments }}
           version: ${{ inputs.jreleaser-version }}
         env:
-          JRELEASER_DOCKER_GITHUB_USERNAME: ${{ secrets.github-user }}
-          JRELEASER_DOCKER_GITHUB_PASSWORD: ${{ secrets.github-token }}
+          JRELEASER_DOCKER_GITHUB_USERNAME: ${{ secrets.docker-github-user }}
+          JRELEASER_DOCKER_GITHUB_PASSWORD: ${{ secrets.docker-github-token }}
           JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.docker-username }}
           JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
           JRELEASER_GITHUB_PASSWORD: ${{ secrets.github-token }}
