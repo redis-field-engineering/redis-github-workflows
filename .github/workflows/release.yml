@@ -122,6 +122,8 @@ jobs:
           version: ${{ inputs.jreleaser-version }}
         env:
           JRELEASER_BRANCH: ${{ inputs.branch }}
+          JRELEASER_DOCKER_GITHUB_USERNAME: ${{ secrets.github-user }}
+          JRELEASER_DOCKER_GITHUB_PASSWORD: ${{ secrets.github-token }}
           JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.docker-username }}
           JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
           JRELEASER_GITHUB_PASSWORD: ${{ secrets.github-token }}
