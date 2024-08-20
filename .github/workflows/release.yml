@@ -33,13 +33,17 @@ on:
         required: true
       gpg-secret-key:
         required: true
+      sonatype-username:
+        required: false
+      sonatype-password:
+        required: false
       docker-username:
         required: false
       docker-password:
         required: false
-      sonatype-username:
+      docker-github-username:
         required: false
-      sonatype-password:
+      docker-github-password:
         required: false
       slack-webhook:
         required: false
@@ -122,8 +126,8 @@ jobs:
           version: ${{ inputs.jreleaser-version }}
         env:
           JRELEASER_BRANCH: ${{ inputs.branch }}
-          JRELEASER_DOCKER_GITHUB_USERNAME: ${{ secrets.github-user }}
-          JRELEASER_DOCKER_GITHUB_PASSWORD: ${{ secrets.github-token }}
+          JRELEASER_DOCKER_GITHUB_USERNAME: ${{ secrets.docker-github-username }}
+          JRELEASER_DOCKER_GITHUB_PASSWORD: ${{ secrets.docker-github-password }}
           JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.docker-username }}
           JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
           JRELEASER_GITHUB_PASSWORD: ${{ secrets.github-token }}
