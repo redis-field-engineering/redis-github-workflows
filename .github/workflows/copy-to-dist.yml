@@ -1,0 +1,56 @@
+name: Copy to dist
+
+on:
+  workflow_call:
+    inputs:
+      source-branch:
+        default: 'main'
+        required: false
+        type: string
+      target-repository:
+        required: true
+        type: string
+      target-branch:
+        default: 'main'
+        required: false
+        type: string
+      target-username:
+        default: 'Julien Ruaux'
+        required: false
+        type: string
+      files:
+        default: 'README.adoc'
+        required: false
+        type: string
+    secrets:
+      github-user:
+        required: false
+      github-token:
+        required: true
+
+jobs:
+  release:
+    name: Copy to repo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source-branch }}
+          path: 'source'
+      - name: Checkout target
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.target-repository }}
+          ref: ${{ inputs.target-branch }}
+          path: 'target'
+      - name: Copy to target
+        run: |
+          cd source
+          cp ${{ inputs.files }} ../target/
+          cd ../target
+          git add ${{ inputs.files }}
+          git config --global user.email "${{ secrets.COMMIT_EMAIL }}"
+          git config --global user.name "${{ inputs.target-username }}"
+          git commit --allow-empty -a -m "Copy files from source repo"
+          git push origin ${{ inputs.target-branch }}
