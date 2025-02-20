@@ -38,14 +38,9 @@ jobs:
         with:
           ref: ${{ inputs.source-branch }}
           path: 'source'
-      - name: Checkout target
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ inputs.target-repository }}
-          ref: ${{ inputs.target-branch }}
-          path: 'target'
       - name: Copy to target
         run: |
+          git clone "https://${{ secrets.github-token }}@github.com/${{ inputs.target-repository vcvc }}.git" target
           cd source
           cp ${{ inputs.files }} ../target/
           cd ../target
