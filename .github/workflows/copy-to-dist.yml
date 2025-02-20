@@ -40,7 +40,7 @@ jobs:
           path: 'source'
       - name: Copy to target
         run: |
-          git clone "https://${{ secrets.github-token }}@github.com/${{ inputs.target-repository vcvc }}.git" target
+          git clone "https://${{ secrets.github-token }}@github.com/${{ inputs.target-repository }}.git" target
           cd source
           cp ${{ inputs.files }} ../target/
           cd ../target
