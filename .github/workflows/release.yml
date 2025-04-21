@@ -27,8 +27,8 @@ on:
         required: false
         type: string
     secrets:
-	  commit-email:
-		required: false
+      commit-email:
+        required: false
       github-user:
         required: false
       github-token:
