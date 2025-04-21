@@ -1,3 +1,366 @@
-= Reusable GitHub Workflows
+= Redis Github Workflows
+:toc: left
+:icons: font
+:source-highlighter: highlight.js
+:imagesdir: ./images
 
-This repository contains reusable GitHub workflows for Redis Field Engineering projects.
+This repository contains reusable GitHub workflows for Redis projects.
+
+== Release
+
+This section describes the GitHub Actions workflow defined in `.github/workflows/release.yml` from the https://github.com/redis-field-engineering/redis-github-workflows[Redis Field Engineering GitHub Workflows] repository. 
+This workflow provides a reusable release process for Gradle-based projects that can be called from other repositories, handling versioning, building, testing, and publishing to various platforms including Maven Central and Docker Hub.
+
+=== Prerequisites
+
+For this workflow to function properly, ensure your project has:
+
+1. A Gradle-based build system with a https://docs.gradle.org/current/userguide/gradle_wrapper.html[`gradlew` wrapper]
+2. Required secrets configured in your repository settings
+3. https://jreleaser.org/guide/latest/quick-start/cli.html[Jreleaser configuration file] (`jreleaser.yml`)
+4. A `README.adoc` file with a `:project-version:` attribute (if you're using the version updating features)
+
+
+=== Workflow Details
+
+[cols="1,3"]
+|===
+|Name|`release.yml`
+|Purpose|A reusable workflow that automates the release process for Gradle-based projects
+|Trigger|Workflow call from other workflows
+|Type|Reusable workflow (`workflow_call`)
+|===
+
+=== Features
+
+* Configurable release versioning
+* Gradle-based build and testing
+* JReleaser integration for publishing
+* Artifact signing with GPG
+* Multi-platform publishing support (GitHub, Maven repositories, Docker)
+* Slack notifications (optional)
+* Test report aggregation and upload
+
+=== Workflow Inputs
+
+The workflow accepts the following inputs:
+
+[cols="1,1,1,3"]
+|===
+|Input|Default|Required|Description
+
+|`branch`
+|`main`
+|No
+|The branch to release from
+
+|`version`
+|_None_
+|Yes
+|The version to release
+
+|`jreleaser-version`
+|`latest`
+|No
+|The version of JReleaser to use
+
+|`java-version`
+|`21`
+|No
+|The Java version to use for building
+
+|`tasks`
+|`build aggregateTestReports publish`
+|No
+|The Gradle tasks to execute
+|===
+
+=== Required Secrets
+
+The workflow requires several secrets to function properly:
+
+[cols="1,1,3"]
+|===
+|Secret|Required|Purpose
+
+|`github-token`
+|Yes
+|GitHub API token for repository operations
+
+|`gpg-passphrase`
+|Yes
+|Passphrase for GPG key used to sign artifacts
+
+|`gpg-public-key`
+|Yes
+|GPG public key for artifact signing
+
+|`gpg-secret-key`
+|Yes
+|GPG secret key for artifact signing
+|===
+
+=== Optional Secrets
+
+Depending on your publishing needs, you may require additional secrets:
+
+[cols="1,3"]
+|===
+|Secret|Purpose
+
+|`github-user`
+|GitHub username for authentication
+
+|`sonatype-username`
+|Username for publishing to Sonatype Maven repositories
+
+|`sonatype-password`
+|Password for publishing to Sonatype Maven repositories
+
+|`docker-username`
+|Username for Docker registry authentication
+
+|`docker-password`
+|Password for Docker registry authentication
+
+|`docker-github-username`
+|Username for GitHub Container Registry authentication
+
+|`docker-github-password`
+|Password for GitHub Container Registry authentication
+
+|`slack-webhook`
+|Webhook URL for Slack notifications
+|===
+
+=== Workflow Steps
+
+==== Cancel Previous Run
+
+The workflow begins by canceling any previous runs of the same workflow to avoid conflicts:
+
+```yaml
+- name: Cancel previous run
+  uses: styfle/cancel-workflow-action@0.12.1
+  with:
+    access_token: ${{ secrets.github-token }}
+```
+
+==== Repository Checkout
+
+The workflow checks out the repository code.
+
+Note the fetch-depth: 0 option on the Checkout workflow step. It is required for JReleaser to work properly. Without that, JReleaser might fail or behave incorrectly.
+
+```yaml
+- name: Checkout
+  uses: actions/checkout@v4
+  with:
+    ref: ${{ inputs.branch }}
+    fetch-depth: 0
+```
+
+==== Java Setup
+
+Sets up the Java Development Kit based on the provided Java version:
+
+```yaml
+- name: Set up Java
+  uses: actions/setup-java@v4
+  with:
+    java-version: ${{ inputs.java-version }}
+    distribution: 'zulu'
+```
+
+==== Gradle Caching
+
+Configures caching for Gradle to speed up builds:
+
+```yaml
+- name: Cache Gradle
+  uses: actions/cache@v4
+  with:
+    path: ~/.gradle/caches
+    key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}-${{ hashFiles('**/gradle.properties') }}
+    restore-keys: |
+      ${{ runner.os }}-gradle-
+
+- name: Cache Gradle wrapper
+  uses: actions/cache@v4
+  with:
+    path: ~/.gradle/wrapper
+    key: ${{ runner.os }}-gradlew-${{ hashFiles('**/gradlew') }}
+    restore-keys: ${{ runner.os }}-gradlew-
+```
+
+==== Version Management
+
+The workflow sets the release version number using the given input and writes it to the `VERSION` file as well as `README.adoc` so that documentation can reference the latest release version:
+
+```yaml
+- name: Version
+  run: |
+    echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+    echo ${{ inputs.version }} > VERSION
+    git add VERSION
+    sed -i -e "s/^\:project-version\:\ .*/:project-version: ${{ inputs.version }}/g" README.adoc
+    git config --global user.email "${{ secrets.COMMIT_EMAIL }}"
+    git config --global user.name "${{ secrets.COMMIT_USER }}"
+    git commit --allow-empty -a -m "Releasing version ${{ inputs.version }}"
+    git push origin ${{ inputs.branch }}
+```
+
+==== Build and Test
+
+Executes the specified Gradle tasks:
+
+```yaml
+- name: Build
+  run: |
+    ./gradlew -Pprofile=release -PreproducibleBuild=true ${{ inputs.tasks }} -S
+  env:
+    GRGIT_USER: ${{ secrets.github-user }}
+    GRGIT_PASS: ${{ secrets.github-token }}
+```
+
+==== Test Report Handling
+
+If the build fails, test reports are uploaded as artifacts:
+
+```yaml
+- name: Upload test reports
+  if: failure()
+  uses: actions/upload-artifact@v4
+  with:
+    name: test-reports
+    path: |
+      build/reports/aggregate-tests/
+```
+
+==== JReleaser Integration
+
+The workflow uses JReleaser for assembling and releasing artifacts:
+
+```yaml
+- name: Assemble
+  uses: jreleaser/release-action@v2
+  with:
+    arguments: assemble
+    version: ${{ inputs.jreleaser-version }}
+  env:
+    JRELEASER_PROJECT_VERSION: ${{ inputs.version }}
+
+- name: Release
+  uses: jreleaser/release-action@v2
+  with:
+    arguments: full-release
+    version: ${{ inputs.jreleaser-version }}
+  env:
+    JRELEASER_BRANCH: ${{ inputs.branch }}
+    JRELEASER_DOCKER_GITHUB_USERNAME: ${{ secrets.docker-github-username }}
+    JRELEASER_DOCKER_GITHUB_PASSWORD: ${{ secrets.docker-github-password }}
+    JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.docker-username }}
+    JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
+    JRELEASER_GITHUB_PASSWORD: ${{ secrets.github-token }}
+    JRELEASER_GITHUB_TOKEN: ${{ secrets.github-token }}
+    JRELEASER_GITHUB_USERNAME: ${{ secrets.github-user }}
+    JRELEASER_GPG_PASSPHRASE: ${{ secrets.gpg-passphrase }}
+    JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.gpg-public-key }}
+    JRELEASER_GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
+    JRELEASER_NEXUS2_USERNAME: ${{ secrets.sonatype-username }}
+    JRELEASER_NEXUS2_PASSWORD: ${{ secrets.sonatype-password }}
+    JRELEASER_PROJECT_VERSION: ${{ inputs.version }}
+    JRELEASER_SLACK_WEBHOOK: ${{ secrets.slack-webhook }}
+```
+
+==== Output Artifacts
+
+The workflow uploads JReleaser logs as artifacts:
+
+```yaml
+- name: JReleaser output
+  if: always()
+  uses: actions/upload-artifact@v4
+  with:
+    name: artifact
+    path: |
+      out/jreleaser/trace.log
+      out/jreleaser/output.properties
+```
+
+=== Usage Instructions
+
+==== Calling the Workflow
+
+To use this reusable workflow in your own repository, create a workflow file (e.g., `.github/workflows/my-release.yml`) with the following structure:
+
+```yaml
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version'
+        required: true
+        type: string
+      branch:
+        description: 'Branch to release from'
+        default: 'main'
+        required: false
+        type: string
+
+jobs:
+  release:
+    uses: redis-field-engineering/redis-github-workflows/.github/workflows/release.yml@main
+    with:
+      version: ${{ github.event.inputs.version }}
+      branch: ${{ github.event.inputs.branch }}
+      java-version: '21'  # Optional, defaults to '21'
+      tasks: 'build aggregateTestReports publish'  # Optional
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+      gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
+      gpg-public-key: ${{ secrets.GPG_PUBLIC_KEY }}
+      gpg-secret-key: ${{ secrets.GPG_SECRET_KEY }}
+      # Optional secrets based on your needs
+      github-user: ${{ secrets.GITHUB_USER }}
+      sonatype-username: ${{ secrets.SONATYPE_USERNAME }}
+      sonatype-password: ${{ secrets.SONATYPE_PASSWORD }}
+      docker-username: ${{ secrets.DOCKER_USERNAME }}
+      docker-password: ${{ secrets.DOCKER_PASSWORD }}
+      docker-github-username: ${{ secrets.DOCKER_GITHUB_USERNAME }}
+      docker-github-password: ${{ secrets.DOCKER_GITHUB_PASSWORD }}
+      slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
+```
+
+=== Advanced Configuration
+
+==== JReleaser Integration
+
+This workflow heavily relies on JReleaser for the actual release process. To fully utilize its capabilities, you should have a proper JReleaser configuration in your project.
+
+For JReleaser configuration details, refer to the https://jreleaser.org/guide/latest/index.html[JReleaser documentation].
+
+==== Customizing Gradle Tasks
+
+The `tasks` input allows you to customize which Gradle tasks are executed during the build phase. The default is `build aggregateTestReports publish`, but you can adjust this based on your project's needs.
+
+==== Docker Publishing
+
+To publish Docker images, ensure your project has proper Docker configuration and provide the required Docker credentials as secrets.
+
+=== Troubleshooting
+
+
+1. *GPG Signing Failures*
+   - Verify that the GPG keys and passphrase secrets are correctly configured
+   - Ensure the GPG key format matches what JReleaser expects (Base64 encoded)
+
+2. *Build Failures*
+   - Check the build logs for specific Gradle errors
+   - Review the test reports that are uploaded as artifacts when builds fail
+
+3. *Publication Failures*
+   - Verify credentials for the target platforms (Docker, Maven repositories)
+   - Check JReleaser logs for detailed error information

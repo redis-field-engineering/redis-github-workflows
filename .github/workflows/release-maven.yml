@@ -114,8 +114,8 @@ jobs:
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
           JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.docker-username }}
           JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
-          JRELEASER_NEXUS2_USERNAME: ${{ secrets.sonatype-username }}
-          JRELEASER_NEXUS2_PASSWORD: ${{ secrets.sonatype-password }}
+          JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.sonatype-username }}
+          JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.sonatype-password }}
           JRELEASER_GITHUB_USERNAME: ${{ secrets.github-user }}
           JRELEASER_GITHUB_PASSWORD: ${{ secrets.github-token }}
           JRELEASER_SLACK_WEBHOOK: ${{ secrets.slack-webhook }}
