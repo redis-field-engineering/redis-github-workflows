@@ -12,7 +12,7 @@ on:
         required: false
         type: string
       java-version:
-        default: '21'
+        default: '17'
         required: false
         type: string
       tasks:
