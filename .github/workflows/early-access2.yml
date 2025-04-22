@@ -1,0 +1,138 @@
+name: 'Early Access'
+
+on:
+  workflow_call:
+    inputs:
+      jreleaser-version:
+        default: 'latest'
+        required: false
+        type: string
+      jreleaser-arguments:
+        default: 'release'
+        required: false
+        type: string
+      java-version:
+        default: '21'
+        required: false
+        type: string
+      tasks:
+        default: 'build aggregateTestReports aggregateJacocoReport publish'
+        required: false
+        type: string
+    secrets:
+      github-user:
+        required: false
+      github-token:
+        required: true
+      gpg-passphrase:
+        required: true
+      gpg-public-key:
+        required: true
+      gpg-secret-key:
+        required: true
+      sonatype-username:
+        required: false
+      sonatype-password:
+        required: false
+      docker-username:
+        required: false
+      docker-password:
+        required: false
+      docker-github-username:
+        required: false
+      docker-github-password:
+        required: false
+      slack-webhook:
+        required: false
+      codecov-token:
+        required: false
+
+jobs:
+  earlyaccess:
+    name: 'Early Access'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel previous run
+        uses: styfle/cancel-workflow-action@0.12.1
+        with:
+          access_token: ${{ secrets.github-token }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'zulu'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}-${{ hashFiles('**/gradle.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Cache Gradle wrapper
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradlew-${{ hashFiles('**/gradlew') }}
+          restore-keys: ${{ runner.os }}-gradlew-
+
+      - name: Build
+        run: |
+          ./gradlew -Prelease=true -PreproducibleBuild=true ${{ inputs.tasks }} -S
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            build/reports/aggregate-tests/
+  
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.codecov-token }}
+
+      - name: Version
+        id: vars
+        shell: bash
+        run: |
+          VERSION=$(grep '^version=' gradle.properties | cut -d'=' -f2 | xargs)
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Release
+        uses: jreleaser/release-action@v2
+        with:
+          arguments: ${{ inputs.jreleaser-arguments }}
+          version: ${{ inputs.jreleaser-version }}
+        env:
+          JRELEASER_DOCKER_GITHUB_USERNAME: ${{ secrets.docker-github-username }}
+          JRELEASER_DOCKER_GITHUB_PASSWORD: ${{ secrets.docker-github-password }}
+          JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.docker-username }}
+          JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
+          JRELEASER_GITHUB_PASSWORD: ${{ secrets.github-token }}
+          JRELEASER_GITHUB_TOKEN: ${{ secrets.github-token }}
+          JRELEASER_GITHUB_USERNAME: ${{ secrets.github-user }}
+          JRELEASER_GPG_PASSPHRASE: ${{ secrets.gpg-passphrase }}
+          JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.gpg-public-key }}
+          JRELEASER_GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
+          JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.sonatype-username }}
+          JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.sonatype-password }}
+          JRELEASER_PROJECT_VERSION: ${{ steps.vars.outputs.VERSION }}
+          JRELEASER_SLACK_WEBHOOK: ${{ secrets.slack-webhook }}
+
+      - name: JReleaser output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact
+          path: |
+            out/jreleaser/trace.log
+            out/jreleaser/output.properties
