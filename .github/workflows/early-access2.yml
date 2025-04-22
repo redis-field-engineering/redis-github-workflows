@@ -19,33 +19,6 @@ on:
         default: 'build aggregateTestReports aggregateJacocoReport publish'
         required: false
         type: string
-    secrets:
-      github-user:
-        required: false
-      github-token:
-        required: true
-      gpg-passphrase:
-        required: true
-      gpg-public-key:
-        required: true
-      gpg-secret-key:
-        required: true
-      sonatype-username:
-        required: false
-      sonatype-password:
-        required: false
-      docker-username:
-        required: false
-      docker-password:
-        required: false
-      docker-github-username:
-        required: false
-      docker-github-password:
-        required: false
-      slack-webhook:
-        required: false
-      codecov-token:
-        required: false
 
 jobs:
   earlyaccess:
@@ -55,7 +28,7 @@ jobs:
       - name: Cancel previous run
         uses: styfle/cancel-workflow-action@0.12.1
         with:
-          access_token: ${{ secrets.github-token }}
+          access_token: ${{ secrets.GIT_ACCESS_TOKEN }}
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -98,7 +71,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         env:
-          CODECOV_TOKEN: ${{ secrets.codecov-token }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Version
         id: vars
@@ -113,20 +86,20 @@ jobs:
           arguments: ${{ inputs.jreleaser-arguments }}
           version: ${{ inputs.jreleaser-version }}
         env:
-          JRELEASER_DOCKER_GITHUB_USERNAME: ${{ secrets.docker-github-username }}
-          JRELEASER_DOCKER_GITHUB_PASSWORD: ${{ secrets.docker-github-password }}
-          JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.docker-username }}
-          JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
-          JRELEASER_GITHUB_PASSWORD: ${{ secrets.github-token }}
-          JRELEASER_GITHUB_TOKEN: ${{ secrets.github-token }}
-          JRELEASER_GITHUB_USERNAME: ${{ secrets.github-user }}
-          JRELEASER_GPG_PASSPHRASE: ${{ secrets.gpg-passphrase }}
-          JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.gpg-public-key }}
-          JRELEASER_GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
-          JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.sonatype-username }}
-          JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.sonatype-password }}
+          JRELEASER_DOCKER_GITHUB_USERNAME: ${{ secrets.GIT_USER }}
+          JRELEASER_DOCKER_GITHUB_PASSWORD: ${{ secrets.GIT_ACCESS_TOKEN }}
+          JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          JRELEASER_GITHUB_PASSWORD: ${{ secrets.GIT_ACCESS_TOKEN }}
+          JRELEASER_GITHUB_TOKEN: ${{ secrets.GIT_ACCESS_TOKEN }}
+          JRELEASER_GITHUB_USERNAME: ${{ secrets.GIT_USER }}
+          JRELEASER_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.GPG_PUBLIC_KEY }}
+          JRELEASER_GPG_SECRET_KEY: ${{ secrets.GPG_SECRET_KEY }}
+          JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           JRELEASER_PROJECT_VERSION: ${{ steps.vars.outputs.VERSION }}
-          JRELEASER_SLACK_WEBHOOK: ${{ secrets.slack-webhook }}
+          JRELEASER_SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: JReleaser output
         if: always()

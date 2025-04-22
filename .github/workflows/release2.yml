@@ -3,10 +3,6 @@ name: Release
 on:
   workflow_call:
     inputs:
-      commit-name:
-        default: Julien Ruaux
-        type: string
-        required: false
       bump:
         required: true
         type: string
@@ -22,33 +18,21 @@ on:
         default: 'build aggregateTestReports publish'
         required: false
         type: string
-    secrets:
-      commit-email:
+      update-external-readme:
+        description: 'Whether to update README in an external repository'
         required: false
-      github-user:
+        type: boolean
+        default: false
+      external-repo:
+        description: 'External repository to update README in (org/repo)'
         required: false
-      github-token:
-        required: true
-      gpg-passphrase:
-        required: true
-      gpg-public-key:
-        required: true
-      gpg-secret-key:
-        required: true
-      sonatype-username:
+        type: string
+        default: ''
+      external-readme-path:
+        description: 'Path to README in external repository'
         required: false
-      sonatype-password:
-        required: false
-      docker-username:
-        required: false
-      docker-password:
-        required: false
-      docker-github-username:
-        required: false
-      docker-github-password:
-        required: false
-      slack-webhook:
-        required: false
+        type: string
+        default: 'README.adoc'
 
 jobs:
   release:
@@ -58,7 +42,7 @@ jobs:
       - name: Cancel previous run
         uses: styfle/cancel-workflow-action@0.12.1
         with:
-          access_token: ${{ secrets.github-token }}
+          access_token: ${{ secrets.GIT_ACCESS_TOKEN }}
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -94,7 +78,7 @@ jobs:
       - name: Bump version in gradle.properties and README.adoc
         id: bump
         run: |
-          BUMP_TYPE="${{ github.event.inputs.bump }}"
+          BUMP_TYPE="${{ inputs.bump }}"
           FILE="gradle.properties"
           README="README.adoc"
 
@@ -127,12 +111,42 @@ jobs:
           git commit --allow-empty -m "Releasing version ${{ steps.bump.outputs.new_version }}"
           git push origin HEAD
 
+      - name: Checkout external repository
+        if: ${{ inputs.update-external-readme == true && inputs.external-repo != '' }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.external-repo }}
+          path: external-repo
+          token: ${{ secrets.GIT_ACCESS_TOKEN }}
+          fetch-depth: 1
+
+      - name: Update README in external repository
+        if: ${{ inputs.update-external-readme == true && inputs.external-repo != '' }}
+        run: |
+          EXTERNAL_README="external-repo/${{ inputs.external-readme-path }}"
+          
+          if [ -f "$EXTERNAL_README" ]; then
+            # Update version in external README
+            sed -i -E "s/^:project-version:.*/:project-version: ${{ steps.bump.outputs.new_version }}/" "$EXTERNAL_README"
+            
+            cd external-repo
+            git config user.name "GitHub Actions"
+            git config user.email "actions@github.com"
+            git add "${{ inputs.external-readme-path }}"
+            git commit -m "Update project version to ${{ steps.bump.outputs.new_version }}"
+            git push
+            cd ..
+          else
+            echo "WARNING: External README file not found at $EXTERNAL_README"
+            exit 1
+          fi
+
       - name: Build
         run: |
           ./gradlew -Pprofile=release -PreproducibleBuild=true ${{ inputs.tasks }} -S
         env:
-          GRGIT_USER: ${{ secrets.github-user }}
-          GRGIT_PASS: ${{ secrets.github-token }}
+          GRGIT_USER: ${{ secrets.GIT_USER }}
+          GRGIT_PASS: ${{ secrets.GIT_ACCESS_TOKEN }}
 
       - name: Upload test reports
         if: failure()
@@ -156,20 +170,20 @@ jobs:
           arguments: full-release
           version: ${{ inputs.jreleaser-version }}
         env:
-          JRELEASER_DOCKER_GITHUB_USERNAME: ${{ secrets.docker-github-username }}
-          JRELEASER_DOCKER_GITHUB_PASSWORD: ${{ secrets.docker-github-password }}
-          JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.docker-username }}
-          JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
-          JRELEASER_GITHUB_PASSWORD: ${{ secrets.github-token }}
-          JRELEASER_GITHUB_TOKEN: ${{ secrets.github-token }}
-          JRELEASER_GITHUB_USERNAME: ${{ secrets.github-user }}
-          JRELEASER_GPG_PASSPHRASE: ${{ secrets.gpg-passphrase }}
-          JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.gpg-public-key }}
-          JRELEASER_GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
-          JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.sonatype-username }}
-          JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.sonatype-password }}
+          JRELEASER_DOCKER_GITHUB_USERNAME: ${{ secrets.GIT_USER }}
+          JRELEASER_DOCKER_GITHUB_PASSWORD: ${{ secrets.GIT_ACCESS_TOKEN }}
+          JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          JRELEASER_GITHUB_PASSWORD: ${{ secrets.GIT_ACCESS_TOKEN }}
+          JRELEASER_GITHUB_TOKEN: ${{ secrets.GIT_ACCESS_TOKEN }}
+          JRELEASER_GITHUB_USERNAME: ${{ secrets.GIT_USER }}
+          JRELEASER_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.GPG_PUBLIC_KEY }}
+          JRELEASER_GPG_SECRET_KEY: ${{ secrets.GPG_SECRET_KEY }}
+          JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           JRELEASER_PROJECT_VERSION: ${{ steps.bump.outputs.new_version }}
-          JRELEASER_SLACK_WEBHOOK: ${{ secrets.slack-webhook }}
+          JRELEASER_SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: JReleaser output
         if: always()
