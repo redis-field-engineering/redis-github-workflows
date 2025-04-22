@@ -1,0 +1,181 @@
+name: Release
+
+on:
+  workflow_call:
+    inputs:
+      commit-name:
+        default: Julien Ruaux
+        type: string
+        required: false
+      bump:
+        required: true
+        type: string
+      jreleaser-version:
+        default: 'latest'
+        required: false
+        type: string
+      java-version:
+        default: '21'
+        required: false
+        type: string
+      tasks:
+        default: 'build aggregateTestReports publish'
+        required: false
+        type: string
+    secrets:
+      commit-email:
+        required: false
+      github-user:
+        required: false
+      github-token:
+        required: true
+      gpg-passphrase:
+        required: true
+      gpg-public-key:
+        required: true
+      gpg-secret-key:
+        required: true
+      sonatype-username:
+        required: false
+      sonatype-password:
+        required: false
+      docker-username:
+        required: false
+      docker-password:
+        required: false
+      docker-github-username:
+        required: false
+      docker-github-password:
+        required: false
+      slack-webhook:
+        required: false
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel previous run
+        uses: styfle/cancel-workflow-action@0.12.1
+        with:
+          access_token: ${{ secrets.github-token }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'zulu'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}-${{ hashFiles('**/gradle.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Cache Gradle wrapper
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradlew-${{ hashFiles('**/gradlew') }}
+          restore-keys: ${{ runner.os }}-gradlew-
+
+      - name: Set up Git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Bump version in gradle.properties and README.adoc
+        id: bump
+        run: |
+          BUMP_TYPE="${{ github.event.inputs.bump }}"
+          FILE="gradle.properties"
+          README="README.adoc"
+
+          # Extract current version
+          VERSION_LINE=$(grep "^version=" "$FILE")
+          VERSION=${VERSION_LINE#version=}
+          IFS='.' read -r major minor patch <<< "$VERSION"
+
+          # Bump version
+          case "$BUMP_TYPE" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+
+          NEW_VERSION="${major}.${minor}.${patch}"
+          echo "New version: $NEW_VERSION"
+
+          # Update gradle.properties
+          sed -i -E "s/^version=.*/version=${NEW_VERSION}/" "$FILE"
+
+          # Update README.adoc
+          sed -i -E "s/^:project-version:.*/:project-version: ${NEW_VERSION}/" "$README"
+
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push version bump
+        run: |
+          git add gradle.properties README.adoc
+          git commit --allow-empty -m "Releasing version ${{ steps.bump.outputs.new_version }}"
+          git push origin HEAD
+
+      - name: Build
+        run: |
+          ./gradlew -Pprofile=release -PreproducibleBuild=true ${{ inputs.tasks }} -S
+        env:
+          GRGIT_USER: ${{ secrets.github-user }}
+          GRGIT_PASS: ${{ secrets.github-token }}
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            build/reports/aggregate-tests/
+
+      - name: Assemble
+        uses: jreleaser/release-action@v2
+        with:
+          arguments: assemble
+          version: ${{ inputs.jreleaser-version }}
+        env:
+          JRELEASER_PROJECT_VERSION: ${{ steps.bump.outputs.new_version }}
+
+      - name: Release
+        uses: jreleaser/release-action@v2
+        with:
+          arguments: full-release
+          version: ${{ inputs.jreleaser-version }}
+        env:
+          JRELEASER_DOCKER_GITHUB_USERNAME: ${{ secrets.docker-github-username }}
+          JRELEASER_DOCKER_GITHUB_PASSWORD: ${{ secrets.docker-github-password }}
+          JRELEASER_DOCKER_DEFAULT_USERNAME: ${{ secrets.docker-username }}
+          JRELEASER_DOCKER_DEFAULT_PASSWORD: ${{ secrets.docker-password }}
+          JRELEASER_GITHUB_PASSWORD: ${{ secrets.github-token }}
+          JRELEASER_GITHUB_TOKEN: ${{ secrets.github-token }}
+          JRELEASER_GITHUB_USERNAME: ${{ secrets.github-user }}
+          JRELEASER_GPG_PASSPHRASE: ${{ secrets.gpg-passphrase }}
+          JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.gpg-public-key }}
+          JRELEASER_GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
+          JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.sonatype-username }}
+          JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.sonatype-password }}
+          JRELEASER_PROJECT_VERSION: ${{ steps.bump.outputs.new_version }}
+          JRELEASER_SLACK_WEBHOOK: ${{ secrets.slack-webhook }}
+
+      - name: JReleaser output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact
+          path: |
+            out/jreleaser/trace.log
+            out/jreleaser/output.properties
