@@ -81,28 +81,42 @@ jobs:
           BUMP_TYPE="${{ inputs.bump }}"
           FILE="gradle.properties"
           README="README.adoc"
-
-          # Extract current version
-          VERSION_LINE=$(grep "^version\s*=\s*" "$FILE")
-          VERSION=${VERSION_LINE#version=}
-          IFS='.' read -r major minor patch <<< "$VERSION"
-
+      
+          # Extract current version - completely revised approach
+          VERSION=$(grep "^version" "$FILE" | cut -d'=' -f2 | tr -d ' ')
+          echo "Current version: $VERSION"
+          
+          # Remove -SNAPSHOT if present
+          BASE_VERSION=${VERSION%-SNAPSHOT}
+          IS_SNAPSHOT=false
+          if [[ "$VERSION" == *-SNAPSHOT ]]; then
+            IS_SNAPSHOT=true
+          fi
+          
+          # Split version into components
+          IFS='.' read -r major minor patch_rest <<< "$BASE_VERSION"
+          # Extract just the patch number (in case it has additional text)
+          patch=$(echo "$patch_rest" | grep -o '^[0-9]*')
+          
           # Bump version
           case "$BUMP_TYPE" in
             major) major=$((major + 1)); minor=0; patch=0 ;;
             minor) minor=$((minor + 1)); patch=0 ;;
             patch) patch=$((patch + 1)) ;;
           esac
-
+      
           NEW_VERSION="${major}.${minor}.${patch}"
+          if [ "$IS_SNAPSHOT" = true ]; then
+            NEW_VERSION="${NEW_VERSION}-SNAPSHOT"
+          fi
           echo "New version: $NEW_VERSION"
-
+      
           # Update gradle.properties
-          sed -i -E "s/^version\s*=.*/version=${NEW_VERSION}/" "$FILE"
-
+          sed -i -E "s/^version\s*=.*/version = ${NEW_VERSION}/" "$FILE"
+      
           # Update README.adoc
           sed -i -E "s/^:project-version:.*/:project-version: ${NEW_VERSION}/" "$README"
-
+      
           echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Commit and push version bump
@@ -124,11 +138,11 @@ jobs:
         if: ${{ inputs.update-external-readme == true && inputs.external-repo != '' }}
         run: |
           EXTERNAL_README="external-repo/${{ inputs.external-readme-path }}"
-          
+
           if [ -f "$EXTERNAL_README" ]; then
             # Update version in external README
             sed -i -E "s/^:project-version:.*/:project-version: ${{ steps.bump.outputs.new_version }}/" "$EXTERNAL_README"
-            
+
             cd external-repo
             git config user.name "GitHub Actions"
             git config user.email "actions@github.com"
