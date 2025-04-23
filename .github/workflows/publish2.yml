@@ -80,7 +80,7 @@ jobs:
       - name: Set release version
         run: |
           VERSION=${{ inputs.version }}
-          sed -i -E "s/^version=.*/version=${VERSION}/" gradle.properties
+          sed -i "s/^version\s*=.*/version=${VERSION}/" gradle.properties
 
       - name: Build
         run: |
