@@ -15,7 +15,7 @@ on:
         required: false
         type: string
       tasks:
-        default: 'build aggregateTestReports publish'
+        default: 'build aggregateTestReport publish'
         required: false
         type: string
       update-external-readme:
@@ -154,7 +154,7 @@ jobs:
         with:
           name: test-reports
           path: |
-            build/reports/aggregate-tests/
+            build/reports/tests/aggregate/
 
       - name: Assemble
         uses: jreleaser/release-action@v2

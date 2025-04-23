@@ -39,7 +39,7 @@ jobs:
 
       - name: Build
         run: |
-          ./gradlew build aggregateTestReports -S
+          ./gradlew build aggregateTestReport -S
         
       - name: Upload test reports
         if: failure()
@@ -47,4 +47,4 @@ jobs:
         with:
           name: test-reports
           path: |
-            build/reports/aggregate-tests/
+            build/reports/tests/aggregate/

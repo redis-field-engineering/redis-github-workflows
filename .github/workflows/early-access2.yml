@@ -16,7 +16,7 @@ on:
         required: false
         type: string
       tasks:
-        default: 'build aggregateTestReports aggregateJacocoReport publish'
+        default: 'build aggregateTestReport publish'
         required: false
         type: string
 
@@ -66,7 +66,7 @@ jobs:
         with:
           name: test-reports
           path: |
-            build/reports/aggregate-tests/
+            build/reports/test/aggregate/
   
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
