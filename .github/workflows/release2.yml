@@ -140,7 +140,7 @@ jobs:
             git config user.name "GitHub Actions"
             git config user.email "actions@github.com"
             git add "${{ inputs.external-readme-path }}"
-            git commit -m "Update project version to ${{ steps.bump.outputs.new_version }}"
+            git commit --allow-empty -m "Update project version to ${{ steps.bump.outputs.new_version }}"
             git push
             cd ..
           else

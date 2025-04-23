@@ -131,7 +131,7 @@ jobs:
             
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
-        if: ${{ inputs.publish }} == true
+        if: ${{ inputs.publish }}
         with:
           github_token: ${{ secrets.github-token }}
           publish_dir: ./target/generated-docs
@@ -144,5 +144,5 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --global user.name "GitHub Action"
           git add pom.xml README.adoc
-          git commit -a -m "Releasing version $VERSION"
+          git commit --allow-empty -a -m "Releasing version $VERSION"
           git push origin ${{ inputs.branch }}
