@@ -88,10 +88,6 @@ jobs:
           
           # Remove -SNAPSHOT if present
           BASE_VERSION=${VERSION%-SNAPSHOT}
-          IS_SNAPSHOT=false
-          if [[ "$VERSION" == *-SNAPSHOT ]]; then
-            IS_SNAPSHOT=true
-          fi
           
           # Split version into components
           IFS='.' read -r major minor patch_rest <<< "$BASE_VERSION"
@@ -106,9 +102,6 @@ jobs:
           esac
       
           NEW_VERSION="${major}.${minor}.${patch}"
-          if [ "$IS_SNAPSHOT" = true ]; then
-            NEW_VERSION="${NEW_VERSION}-SNAPSHOT"
-          fi
           echo "New version: $NEW_VERSION"
       
           # Update gradle.properties
