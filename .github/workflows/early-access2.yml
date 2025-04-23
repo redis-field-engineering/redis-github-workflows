@@ -19,6 +19,10 @@ on:
         default: 'build aggregateTestReport publish'
         required: false
         type: string
+      tests-dir:
+        default: 'build/reports/tests/aggregate'
+        required: false
+        type: string
 
 jobs:
   earlyaccess:
@@ -64,9 +68,9 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
+          name: test-report
           path: |
-            build/reports/test/aggregate/
+            ${{ inputs.tests-dir }}
   
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
