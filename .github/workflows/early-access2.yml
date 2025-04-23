@@ -83,8 +83,14 @@ jobs:
         run: |
           VERSION=$(grep '^version\s*=\s*' gradle.properties | cut -d'=' -f2 | xargs)
           echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *-SNAPSHOT ]]; then
+            echo "SNAPSHOT=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "SNAPSHOT=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Release
+        if: ${{ steps.vars.outputs.SNAPSHOT }}
         uses: jreleaser/release-action@v2
         with:
           arguments: ${{ inputs.jreleaser-arguments }}
