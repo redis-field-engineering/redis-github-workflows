@@ -94,11 +94,16 @@ jobs:
           # Extract just the patch number (in case it has additional text)
           patch=$(echo "$patch_rest" | grep -o '^[0-9]*')
           
-          # Bump version
+          # Bump version based on type
           case "$BUMP_TYPE" in
             major) major=$((major + 1)); minor=0; patch=0 ;;
             minor) minor=$((minor + 1)); patch=0 ;;
-            patch) patch=$((patch + 1)) ;;
+            patch)
+              # For patch, don't increment if we're going from a SNAPSHOT to a release
+              if [[ ! "$VERSION" == *"-SNAPSHOT"* ]]; then
+                patch=$((patch + 1))
+              fi
+              ;;
           esac
       
           NEW_VERSION="${major}.${minor}.${patch}"
