@@ -15,7 +15,7 @@ on:
         required: false
         type: string
       tasks:
-        default: 'build aggregateTestReport publish'
+        default: 'build test aggregateTestReport publish'
         required: false
         type: string
       update-external-readme:
@@ -155,7 +155,7 @@ jobs:
 
       - name: Build
         run: |
-          ./gradlew -Pprofile=release -PreproducibleBuild=true ${{ inputs.tasks }} -S
+          ./gradlew ${{ inputs.tasks }} -S
         env:
           GRGIT_USER: ${{ secrets.GIT_USER }}
           GRGIT_PASS: ${{ secrets.GIT_ACCESS_TOKEN }}
