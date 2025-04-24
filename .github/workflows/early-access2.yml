@@ -16,7 +16,7 @@ on:
         required: false
         type: string
       tasks:
-        default: 'build aggregateTestReport publish'
+        default: 'build test aggregateTestReport'
         required: false
         type: string
       tests-dir:
@@ -62,7 +62,7 @@ jobs:
 
       - name: Build
         run: |
-          ./gradlew -Prelease=true -PreproducibleBuild=true ${{ inputs.tasks }} -S
+          ./gradlew ${{ inputs.tasks }} -S
 
       - name: Upload test reports
         if: failure()
