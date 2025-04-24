@@ -81,14 +81,14 @@ jobs:
           BUMP_TYPE="${{ inputs.bump }}"
           FILE="gradle.properties"
           README="README.adoc"
-      
-          # Extract current version - completely revised approach
+          
+          # Extract current version
           VERSION=$(grep "^version" "$FILE" | cut -d'=' -f2 | tr -d ' ')
           echo "Current version: $VERSION"
           
           # Remove -SNAPSHOT if present
           BASE_VERSION=${VERSION%-SNAPSHOT}
-          
+
           # Split version into components
           IFS='.' read -r major minor patch_rest <<< "$BASE_VERSION"
           # Extract just the patch number (in case it has additional text)
@@ -105,17 +105,22 @@ jobs:
               fi
               ;;
           esac
-      
+
           NEW_VERSION="${major}.${minor}.${patch}"
           echo "New version: $NEW_VERSION"
-      
+
+          # Compute next SNAPSHOT version
+          NEXT_SNAPSHOT="${major}.${minor}.$((patch + 1))-SNAPSHOT"
+          echo "Next SNAPSHOT version: $NEXT_SNAPSHOT"
+
           # Update gradle.properties
           sed -i "s/^version\s*=.*/version = ${NEW_VERSION}/" "$FILE"
-      
+
           # Update README.adoc
           sed -i "s/^:project-version:.*/:project-version: ${NEW_VERSION}/" "$README"
-      
+
           echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "next_snapshot=$NEXT_SNAPSHOT" >> "$GITHUB_OUTPUT"
 
       - name: Commit and push version bump
         run: |
@@ -205,3 +210,19 @@ jobs:
           path: |
             out/jreleaser/trace.log
             out/jreleaser/output.properties
+
+      - name: Bump to next SNAPSHOT version
+        if: success()
+        run: |
+          FILE="gradle.properties"
+          NEXT_SNAPSHOT="${{ steps.bump.outputs.next_snapshot }}"
+
+          echo "Bumping to next development version: $NEXT_SNAPSHOT"
+
+          # Update only gradle.properties with SNAPSHOT version
+          sed -i "s/^version\s*=.*/version = ${NEXT_SNAPSHOT}/" "$FILE"
+
+          # Commit and push changes
+          git add gradle.properties
+          git commit -m "Bump to next development version $NEXT_SNAPSHOT"
+          git push origin HEAD
