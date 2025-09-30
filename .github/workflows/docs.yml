@@ -1,0 +1,42 @@
+name: Build and Deploy Documentation
+
+on:
+  workflow_call:
+    secrets:
+      algolia-app-id:
+        required: false
+      algolia-api-key:
+        required: false
+      algolia-index-name:
+        required: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Build documentation
+        uses: ./.github/actions/build-docs
+        with:
+          algolia-app-id: ${{ secrets.algolia-app-id }}
+          algolia-api-key: ${{ secrets.algolia-api-key }}
+          algolia-index-name: ${{ secrets.algolia-index-name }}
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

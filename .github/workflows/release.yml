@@ -12,7 +12,12 @@ on:
         required: false
         type: string
       version:
-        required: true
+        required: false
+        type: string
+      version-type:
+        description: 'Version bump type (major, minor, patch). Ignored if version is explicitly set.'
+        default: 'patch'
+        required: false
         type: string
       jreleaser-version:
         default: 'latest'
@@ -26,6 +31,10 @@ on:
         default: 'build aggregateTestReports publish'
         required: false
         type: string
+      build-docs:
+        default: false
+        required: false
+        type: boolean
     secrets:
       commit-email:
         required: false
@@ -53,11 +62,21 @@ on:
         required: false
       slack-webhook:
         required: false
+      algolia-app-id:
+        required: false
+      algolia-api-key:
+        required: false
+      algolia-index-name:
+        required: false
 
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
     steps:
       - name: Cancel previous run
         uses: styfle/cancel-workflow-action@0.12.1
@@ -70,36 +89,62 @@ jobs:
           ref: ${{ inputs.branch }}
           fetch-depth: 0
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
+      - name: Setup Gradle
+        uses: ./.github/actions/setup-gradle
         with:
           java-version: ${{ inputs.java-version }}
-          distribution: 'zulu'
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}-${{ hashFiles('**/gradle.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+      - name: Calculate Version
+        id: calc_version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            # Use explicitly provided version
+            RELEASE_VERSION="${{ inputs.version }}"
+          else
+            # Remove -SNAPSHOT suffix
+            RELEASE_VERSION=$(cat VERSION | sed 's/-SNAPSHOT$//')
 
-      - name: Cache Gradle wrapper
-        uses: actions/cache@v4
-        with:
-          path: ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradlew-${{ hashFiles('**/gradlew') }}
-          restore-keys: ${{ runner.os }}-gradlew-
+            # For major/minor bumps, increment the version
+            if [ "${{ inputs.version-type }}" != "patch" ]; then
+              IFS='.' read -r -a version_parts <<< "$RELEASE_VERSION"
+              major="${version_parts[0]}"
+              minor="${version_parts[1]}"
+              patch="${version_parts[2]}"
+
+              case "${{ inputs.version-type }}" in
+                major)
+                  major=$((major + 1))
+                  minor=0
+                  patch=0
+                  ;;
+                minor)
+                  minor=$((minor + 1))
+                  patch=0
+                  ;;
+              esac
+
+              RELEASE_VERSION="${major}.${minor}.${patch}"
+            fi
+          fi
+
+          echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+          echo "Release version: ${RELEASE_VERSION}"
 
       - name: Version
         run: |
-          echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
-          echo ${{ inputs.version }} > VERSION
+          RELEASE_VERSION="${{ steps.calc_version.outputs.RELEASE_VERSION }}"
+          echo "VERSION=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+          echo ${RELEASE_VERSION} > VERSION
           git add VERSION
-          sed -i -e "s/^\:project-version\:\ .*/:project-version: ${{ inputs.version }}/g" README.adoc
+          if [ -f README.adoc ]; then
+            sed -i -e "s/^\:project-version\:\ .*/:project-version: ${RELEASE_VERSION}/g" README.adoc
+          fi
+          if [ -f docs/antora.yml ]; then
+            sed -i "s/^version: '.*'/version: '${RELEASE_VERSION}'/" docs/antora.yml
+          fi
           git config --global user.email "${{ secrets.commit-email }}"
           git config --global user.name "${{ inputs.commit-name }}"
-          git commit --allow-empty -a -m "Releasing version ${{ inputs.version }}"
+          git commit --allow-empty -a -m "Releasing version ${RELEASE_VERSION}"
           git push origin ${{ inputs.branch }}
 
       - name: Build
@@ -123,7 +168,7 @@ jobs:
           arguments: assemble
           version: ${{ inputs.jreleaser-version }}
         env:
-          JRELEASER_PROJECT_VERSION: ${{ inputs.version }}
+          JRELEASER_PROJECT_VERSION: ${{ steps.calc_version.outputs.RELEASE_VERSION }}
 
       - name: Release
         uses: jreleaser/release-action@v2
@@ -144,7 +189,7 @@ jobs:
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
           JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.sonatype-username }}
           JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.sonatype-password }}
-          JRELEASER_PROJECT_VERSION: ${{ inputs.version }}
+          JRELEASER_PROJECT_VERSION: ${{ steps.calc_version.outputs.RELEASE_VERSION }}
           JRELEASER_SLACK_WEBHOOK: ${{ secrets.slack-webhook }}
 
       - name: JReleaser output
@@ -155,3 +200,61 @@ jobs:
           path: |
             out/jreleaser/trace.log
             out/jreleaser/output.properties
+
+      - name: Configure Pages
+        if: inputs.build-docs
+        uses: actions/configure-pages@v5
+
+      - name: Build documentation
+        if: inputs.build-docs
+        uses: redis-field-engineering/redis-github-workflows/.github/actions/build-docs@main
+        with:
+          algolia-app-id: ${{ secrets.algolia-app-id }}
+          algolia-api-key: ${{ secrets.algolia-api-key }}
+          algolia-index-name: ${{ secrets.algolia-index-name }}
+
+      - name: Upload Pages artifact
+        if: inputs.build-docs
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/site
+
+      - name: Deploy to GitHub Pages
+        if: inputs.build-docs
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Bump to Next Snapshot Version
+        run: |
+          RELEASE_VERSION="${{ steps.calc_version.outputs.RELEASE_VERSION }}"
+
+          # Parse current release version
+          IFS='.' read -r -a version_parts <<< "$RELEASE_VERSION"
+          major="${version_parts[0]}"
+          minor="${version_parts[1]}"
+          # Remove any non-numeric suffix from patch version
+          patch=$(echo "${version_parts[2]}" | sed 's/[^0-9].*//')
+
+          # Increment patch version for next snapshot
+          patch=$((patch + 1))
+          NEXT_VERSION="${major}.${minor}.${patch}-SNAPSHOT"
+
+          # Update VERSION file
+          echo ${NEXT_VERSION} > VERSION
+          git add VERSION
+
+          # Update README.adoc if it exists
+          if [ -f README.adoc ]; then
+            sed -i -e "s/^\:project-version\:\ .*/:project-version: ${NEXT_VERSION}/g" README.adoc
+          fi
+
+          # Update docs/antora.yml if it exists
+          if [ -f docs/antora.yml ]; then
+            sed -i "s/^version: '.*'/version: '${NEXT_VERSION}'/" docs/antora.yml
+          fi
+
+          # Commit and push
+          git config --global user.email "${{ secrets.commit-email }}"
+          git config --global user.name "${{ inputs.commit-name }}"
+          git commit --allow-empty -a -m "Bump to next snapshot version ${NEXT_VERSION}"
+          git push origin ${{ inputs.branch }}

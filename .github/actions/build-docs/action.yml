@@ -1,0 +1,33 @@
+name: Build Documentation
+description: Build Antora documentation
+
+inputs:
+  algolia-app-id:
+    description: 'Algolia App ID'
+    required: false
+  algolia-api-key:
+    description: 'Algolia API Key'
+    required: false
+  algolia-index-name:
+    description: 'Algolia Index Name'
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Install Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '18'
+
+    - name: Install Antora
+      shell: bash
+      run: npm i antora
+
+    - name: Run Antora
+      shell: bash
+      run: npx antora antora-playbook.yml
+      env:
+        ALGOLIA_APP_ID: ${{ inputs.algolia-app-id }}
+        ALGOLIA_API_KEY: ${{ inputs.algolia-api-key }}
+        ALGOLIA_INDEX_NAME: ${{ inputs.algolia-index-name }}

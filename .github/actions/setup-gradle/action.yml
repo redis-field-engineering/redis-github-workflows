@@ -1,0 +1,32 @@
+name: Setup Gradle
+description: Set up Java and cache Gradle dependencies
+
+inputs:
+  java-version:
+    description: 'Java version to set up'
+    required: false
+    default: '21'
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ inputs.java-version }}
+        distribution: 'zulu'
+
+    - name: Cache Gradle
+      uses: actions/cache@v4
+      with:
+        path: ~/.gradle/caches
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}-${{ hashFiles('**/gradle.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Cache Gradle wrapper
+      uses: actions/cache@v4
+      with:
+        path: ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradlew-${{ hashFiles('**/gradlew') }}
+        restore-keys: ${{ runner.os }}-gradlew-
