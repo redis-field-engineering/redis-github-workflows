@@ -90,7 +90,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Gradle
-        uses: ./.github/actions/setup-gradle
+        uses: redis-field-engineering/redis-github-workflows/.github/actions/setup-gradle@main
         with:
           java-version: ${{ inputs.java-version }}
 
