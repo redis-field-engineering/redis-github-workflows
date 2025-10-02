@@ -1,0 +1,67 @@
+name: Calculate Version
+description: Calculate release version from VERSION file with optional bumping
+
+inputs:
+  version:
+    description: 'Explicit version to use (overrides calculation)'
+    required: false
+    default: ''
+  version-type:
+    description: 'Version bump type: major, minor, or patch'
+    required: false
+    default: 'patch'
+  version-file:
+    description: 'Path to VERSION file'
+    required: false
+    default: 'VERSION'
+
+outputs:
+  version:
+    description: 'Calculated release version'
+    value: ${{ steps.calc.outputs.version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Calculate version
+      id: calc
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.version }}" ]; then
+          # Use explicitly provided version
+          RELEASE_VERSION="${{ inputs.version }}"
+        else
+          # Read from VERSION file
+          if [ ! -f "${{ inputs.version-file }}" ]; then
+            echo "ERROR: VERSION file not found at ${{ inputs.version-file }}" >&2
+            exit 1
+          fi
+
+          # Remove -SNAPSHOT suffix
+          RELEASE_VERSION=$(cat "${{ inputs.version-file }}" | sed 's/-SNAPSHOT$//')
+
+          # For major/minor bumps, increment the version
+          if [ "${{ inputs.version-type }}" != "patch" ]; then
+            IFS='.' read -r -a version_parts <<< "$RELEASE_VERSION"
+            major="${version_parts[0]}"
+            minor="${version_parts[1]}"
+            patch=$(echo "${version_parts[2]}" | sed 's/[^0-9].*//')
+
+            case "${{ inputs.version-type }}" in
+              major)
+                major=$((major + 1))
+                minor=0
+                patch=0
+                ;;
+              minor)
+                minor=$((minor + 1))
+                patch=0
+                ;;
+            esac
+
+            RELEASE_VERSION="${major}.${minor}.${patch}"
+          fi
+        fi
+
+        echo "version=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+        echo "Release version: ${RELEASE_VERSION}"

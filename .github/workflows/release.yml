@@ -96,56 +96,21 @@ jobs:
 
       - name: Calculate Version
         id: calc_version
-        run: |
-          if [ -n "${{ inputs.version }}" ]; then
-            # Use explicitly provided version
-            RELEASE_VERSION="${{ inputs.version }}"
-          else
-            # Remove -SNAPSHOT suffix
-            RELEASE_VERSION=$(cat VERSION | sed 's/-SNAPSHOT$//')
+        uses: redis-field-engineering/redis-github-workflows/.github/actions/calculate-version@main
+        with:
+          version: ${{ inputs.version }}
+          version-type: ${{ inputs.version-type }}
 
-            # For major/minor bumps, increment the version
-            if [ "${{ inputs.version-type }}" != "patch" ]; then
-              IFS='.' read -r -a version_parts <<< "$RELEASE_VERSION"
-              major="${version_parts[0]}"
-              minor="${version_parts[1]}"
-              patch="${version_parts[2]}"
-
-              case "${{ inputs.version-type }}" in
-                major)
-                  major=$((major + 1))
-                  minor=0
-                  patch=0
-                  ;;
-                minor)
-                  minor=$((minor + 1))
-                  patch=0
-                  ;;
-              esac
-
-              RELEASE_VERSION="${major}.${minor}.${patch}"
-            fi
-          fi
-
-          echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
-          echo "Release version: ${RELEASE_VERSION}"
-
-      - name: Version
-        run: |
-          RELEASE_VERSION="${{ steps.calc_version.outputs.RELEASE_VERSION }}"
-          echo "VERSION=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
-          echo ${RELEASE_VERSION} > VERSION
-          git add VERSION
-          if [ -f README.adoc ]; then
-            sed -i -e "s/^\:project-version\:\ .*/:project-version: ${RELEASE_VERSION}/g" README.adoc
-          fi
-          if [ -f docs/antora.yml ]; then
-            sed -i "s/^version: '.*'/version: '${RELEASE_VERSION}'/" docs/antora.yml
-          fi
-          git config --global user.email "${{ secrets.commit-email }}"
-          git config --global user.name "${{ inputs.commit-name }}"
-          git commit --allow-empty -a -m "Releasing version ${RELEASE_VERSION}"
-          git push origin ${{ inputs.branch }}
+      - name: Set Release Version
+        uses: redis-field-engineering/redis-github-workflows/.github/actions/set-version@main
+        with:
+          version: ${{ steps.calc_version.outputs.version }}
+          commit: true
+          commit-message: 'Releasing version {version}'
+          commit-name: ${{ inputs.commit-name }}
+          commit-email: ${{ secrets.commit-email }}
+          push: true
+          branch: ${{ inputs.branch }}
 
       - name: Build
         run: |
@@ -168,7 +133,7 @@ jobs:
           arguments: assemble
           version: ${{ inputs.jreleaser-version }}
         env:
-          JRELEASER_PROJECT_VERSION: ${{ steps.calc_version.outputs.RELEASE_VERSION }}
+          JRELEASER_PROJECT_VERSION: ${{ steps.calc_version.outputs.version }}
 
       - name: Release
         uses: jreleaser/release-action@v2
@@ -189,7 +154,7 @@ jobs:
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.gpg-secret-key }}
           JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.sonatype-username }}
           JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.sonatype-password }}
-          JRELEASER_PROJECT_VERSION: ${{ steps.calc_version.outputs.RELEASE_VERSION }}
+          JRELEASER_PROJECT_VERSION: ${{ steps.calc_version.outputs.version }}
           JRELEASER_SLACK_WEBHOOK: ${{ secrets.slack-webhook }}
 
       - name: JReleaser output
@@ -225,36 +190,11 @@ jobs:
         uses: actions/deploy-pages@v4
 
       - name: Bump to Next Snapshot Version
-        run: |
-          RELEASE_VERSION="${{ steps.calc_version.outputs.RELEASE_VERSION }}"
-
-          # Parse current release version
-          IFS='.' read -r -a version_parts <<< "$RELEASE_VERSION"
-          major="${version_parts[0]}"
-          minor="${version_parts[1]}"
-          # Remove any non-numeric suffix from patch version
-          patch=$(echo "${version_parts[2]}" | sed 's/[^0-9].*//')
-
-          # Increment patch version for next snapshot
-          patch=$((patch + 1))
-          NEXT_VERSION="${major}.${minor}.${patch}-SNAPSHOT"
-
-          # Update VERSION file
-          echo ${NEXT_VERSION} > VERSION
-          git add VERSION
-
-          # Update README.adoc if it exists
-          if [ -f README.adoc ]; then
-            sed -i -e "s/^\:project-version\:\ .*/:project-version: ${NEXT_VERSION}/g" README.adoc
-          fi
-
-          # Update docs/antora.yml if it exists
-          if [ -f docs/antora.yml ]; then
-            sed -i "s/^version: '.*'/version: '${NEXT_VERSION}'/" docs/antora.yml
-          fi
-
-          # Commit and push
-          git config --global user.email "${{ secrets.commit-email }}"
-          git config --global user.name "${{ inputs.commit-name }}"
-          git commit --allow-empty -a -m "Bump to next snapshot version ${NEXT_VERSION}"
-          git push origin ${{ inputs.branch }}
+        uses: redis-field-engineering/redis-github-workflows/.github/actions/bump-snapshot-version@main
+        with:
+          release-version: ${{ steps.calc_version.outputs.version }}
+          commit: true
+          commit-name: ${{ inputs.commit-name }}
+          commit-email: ${{ secrets.commit-email }}
+          push: true
+          branch: ${{ inputs.branch }}

@@ -1,0 +1,85 @@
+name: Bump Snapshot Version
+description: Increment patch version and add -SNAPSHOT suffix
+
+inputs:
+  release-version:
+    description: 'The release version to bump from'
+    required: true
+  commit:
+    description: 'Create a git commit with the version change'
+    required: false
+    default: 'false'
+  commit-name:
+    description: 'Git commit author name'
+    required: false
+    default: 'GitHub Actions'
+  commit-email:
+    description: 'Git commit author email'
+    required: false
+    default: 'noreply@github.com'
+  push:
+    description: 'Push the commit to remote (requires commit: true)'
+    required: false
+    default: 'false'
+  branch:
+    description: 'Branch to push to (if push is true)'
+    required: false
+    default: 'main'
+
+outputs:
+  snapshot-version:
+    description: 'The new snapshot version'
+    value: ${{ steps.bump.outputs.snapshot-version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Calculate next snapshot version
+      id: bump
+      shell: bash
+      run: |
+        RELEASE_VERSION="${{ inputs.release-version }}"
+
+        # Parse current release version
+        IFS='.' read -r -a version_parts <<< "$RELEASE_VERSION"
+        major="${version_parts[0]}"
+        minor="${version_parts[1]}"
+        # Remove any non-numeric suffix from patch version
+        patch=$(echo "${version_parts[2]}" | sed 's/[^0-9].*//')
+
+        # Increment patch version for next snapshot
+        patch=$((patch + 1))
+        NEXT_VERSION="${major}.${minor}.${patch}-SNAPSHOT"
+
+        echo "snapshot-version=${NEXT_VERSION}" >> $GITHUB_OUTPUT
+        echo "Bumping from ${RELEASE_VERSION} to ${NEXT_VERSION}"
+
+        # Update VERSION file
+        echo "${NEXT_VERSION}" > VERSION
+        git add VERSION
+
+        # Update README.adoc if it exists
+        if [ -f README.adoc ]; then
+          sed -i -e "s/^\:project-version\:\ .*/:project-version: ${NEXT_VERSION}/g" README.adoc
+          git add README.adoc
+        fi
+
+        # Update docs/antora.yml if it exists
+        if [ -f docs/antora.yml ]; then
+          sed -i "s/^version: '.*'/version: '${NEXT_VERSION}'/" docs/antora.yml
+          git add docs/antora.yml
+        fi
+
+    - name: Commit changes
+      if: inputs.commit == 'true'
+      shell: bash
+      run: |
+        git config --global user.email "${{ inputs.commit-email }}"
+        git config --global user.name "${{ inputs.commit-name }}"
+        git commit --allow-empty -a -m "Bump to next snapshot version ${{ steps.bump.outputs.snapshot-version }}"
+
+    - name: Push changes
+      if: inputs.commit == 'true' && inputs.push == 'true'
+      shell: bash
+      run: |
+        git push origin ${{ inputs.branch }}
