@@ -4,6 +4,20 @@ This directory contains modular, reusable composite actions for building and rel
 
 ## Available Actions
 
+**Core Actions:**
+- 🔧 **setup-gradle** - Setup Java and Gradle with caching
+- 🏷️ **create-release-tag** - Create release tag using Axion
+- 🏗️ **gradle-build** - Build and publish with Gradle
+
+**Release & Deploy:**
+- 🚀 **jreleaser** - GitHub release, Maven Central deploy, Slack notifications
+
+**Documentation & Distribution:**
+- 📝 **update-antora-version** - Update docs/antora.yml version
+- 📋 **clone-to-dist-repo** - Clone release to -dist repository
+
+---
+
 ### 🔧 setup-gradle
 Setup Java and Gradle with caching.
 
@@ -66,20 +80,39 @@ Build and optionally publish with Gradle.
 
 ---
 
-### 📦 create-github-release
-Create a GitHub release with artifacts.
+### 🚀 jreleaser
+Run JReleaser to create GitHub release, deploy to Maven Central, and send notifications.
 
 **Inputs:**
-- `version` (required) - Version to release
+- `version` (required) - Project version
 - `git-access-token` (required) - GitHub token for creating release
-- `artifacts-path` (optional, default: `build/libs/*`) - Path to artifacts to upload
+- `gpg-secret-key` (optional) - GPG secret key for signing
+- `gpg-public-key` (optional) - GPG public key
+- `gpg-passphrase` (optional) - GPG passphrase
+- `sonatype-username` (optional) - Sonatype username
+- `sonatype-password` (optional) - Sonatype password
+- `slack-webhook` (optional) - Slack webhook URL
+- `jreleaser-version` (optional, default: `latest`) - JReleaser version
+- `arguments` (optional, default: `full-release`) - JReleaser arguments
+
+**What it does:**
+- Creates GitHub release with changelog
+- Signs and uploads artifacts
+- Deploys to Maven Central
+- Sends Slack notifications
+- All configured via `jreleaser.yml` in your project
 
 **Example:**
 ```yaml
-- uses: redis-field-engineering/redis-github-workflows/.github/actions/create-github-release@main
+- uses: redis-field-engineering/redis-github-workflows/.github/actions/jreleaser@main
   with:
     version: ${{ steps.release.outputs.version }}
     git-access-token: ${{ secrets.GITHUB_TOKEN }}
+    gpg-secret-key: ${{ secrets.GPG_SECRET_KEY }}
+    gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
+    sonatype-username: ${{ secrets.SONATYPE_USERNAME }}
+    sonatype-password: ${{ secrets.SONATYPE_PASSWORD }}
+    slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
 ```
 
 ---
@@ -120,27 +153,7 @@ Clone GitHub release to a -dist repository.
 
 ---
 
-### 💬 notify-slack
-Send a notification to Slack.
 
-**Inputs:**
-- `webhook-url` (required) - Slack webhook URL
-- `version` (required) - Version that was released
-- `repository` (required) - Repository name
-- `status` (optional, default: `success`) - Release status
-
-**Example:**
-```yaml
-- uses: redis-field-engineering/redis-github-workflows/.github/actions/notify-slack@main
-  if: always()
-  with:
-    webhook-url: ${{ secrets.SLACK_WEBHOOK }}
-    version: ${{ steps.release.outputs.version }}
-    repository: ${{ github.repository }}
-    status: ${{ job.status }}
-```
-
----
 
 ## Complete Example Workflow
 
@@ -191,35 +204,34 @@ jobs:
           version-increment: ${{ inputs.version-increment }}
           git-access-token: ${{ secrets.GIT_ACCESS_TOKEN }}
 
-      - name: Build and Publish
+      - name: Build
         uses: redis-field-engineering/redis-github-workflows/.github/actions/gradle-build@main
         with:
-          tasks: 'build publish'
+          tasks: 'build'
+
+      - name: Release with JReleaser
+        uses: redis-field-engineering/redis-github-workflows/.github/actions/jreleaser@main
+        with:
+          version: ${{ steps.release.outputs.version }}
+          git-access-token: ${{ secrets.GIT_ACCESS_TOKEN }}
           gpg-secret-key: ${{ secrets.GPG_SECRET_KEY }}
           gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
           sonatype-username: ${{ secrets.SONATYPE_USERNAME }}
           sonatype-password: ${{ secrets.SONATYPE_PASSWORD }}
+          slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
 
-      - name: Create GitHub Release
-        uses: redis-field-engineering/redis-github-workflows/.github/actions/create-github-release@main
+      - name: Clone to Dist Repo
+        uses: redis-field-engineering/redis-github-workflows/.github/actions/clone-to-dist-repo@main
         with:
-          version: ${{ steps.release.outputs.version }}
           git-access-token: ${{ secrets.GIT_ACCESS_TOKEN }}
+          source-repo: ${{ github.repository }}
+          dest-repo: ${{ github.repository }}-dist
 
       - name: Update Antora Version
         uses: redis-field-engineering/redis-github-workflows/.github/actions/update-antora-version@main
         with:
           version: ${{ steps.release.outputs.version }}
           git-access-token: ${{ secrets.GIT_ACCESS_TOKEN }}
-
-      - name: Notify Slack
-        if: always()
-        uses: redis-field-engineering/redis-github-workflows/.github/actions/notify-slack@main
-        with:
-          webhook-url: ${{ secrets.SLACK_WEBHOOK }}
-          version: ${{ steps.release.outputs.version }}
-          repository: ${{ github.repository }}
-          status: ${{ job.status }}
 ```
 
 ## Benefits of Modular Actions
