@@ -1,0 +1,53 @@
+name: 'Create Release Tag'
+description: 'Create a release tag using Axion Release Plugin'
+
+inputs:
+  version:
+    description: 'Specific version to release (optional)'
+    required: false
+  version-increment:
+    description: 'Version increment type (major, minor, patch)'
+    required: false
+    default: 'patch'
+  git-access-token:
+    description: 'GitHub token for pushing tags'
+    required: true
+
+outputs:
+  version:
+    description: 'The version that was released'
+    value: ${{ steps.create_tag.outputs.version }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Configure Git
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Create Release Tag
+      id: create_tag
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.git-access-token }}
+      run: |
+        if [ -n "${{ inputs.version }}" ]; then
+          ./gradlew release -Prelease.version=${{ inputs.version }} -Prelease.disableChecks
+        else
+          ./gradlew release -Prelease.versionIncrementer=increment${{ inputs.version-increment }} -Prelease.disableChecks
+        fi
+        
+        # Get the version that was just tagged
+        VERSION=$(./gradlew currentVersion -q | grep "Project version:" | cut -d' ' -f3)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Released version: $VERSION"
+
+    - name: Checkout Release Tag
+      shell: bash
+      env:
+        RELEASE_VERSION: ${{ steps.create_tag.outputs.version }}
+      run: |
+        git fetch --tags
+        git checkout "v$RELEASE_VERSION"

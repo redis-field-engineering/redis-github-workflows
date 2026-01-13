@@ -1,0 +1,43 @@
+name: 'Gradle Build'
+description: 'Build and optionally publish with Gradle'
+
+inputs:
+  tasks:
+    description: 'Gradle tasks to run'
+    required: false
+    default: 'build'
+  gpg-secret-key:
+    description: 'GPG secret key for signing'
+    required: false
+  gpg-public-key:
+    description: 'GPG public key'
+    required: false
+  gpg-passphrase:
+    description: 'GPG passphrase'
+    required: false
+  sonatype-username:
+    description: 'Sonatype username'
+    required: false
+  sonatype-password:
+    description: 'Sonatype password'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Import GPG key
+      if: inputs.gpg-secret-key != ''
+      uses: crazy-max/ghaction-import-gpg@v6
+      with:
+        gpg_private_key: ${{ inputs.gpg-secret-key }}
+        passphrase: ${{ inputs.gpg-passphrase }}
+
+    - name: Build with Gradle
+      shell: bash
+      env:
+        GPG_PUBLIC_KEY: ${{ inputs.gpg-public-key }}
+        GPG_SECRET_KEY: ${{ inputs.gpg-secret-key }}
+        GPG_PASSPHRASE: ${{ inputs.gpg-passphrase }}
+        SONATYPE_USERNAME: ${{ inputs.sonatype-username }}
+        SONATYPE_PASSWORD: ${{ inputs.sonatype-password }}
+      run: ./gradlew ${{ inputs.tasks }}

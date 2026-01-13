@@ -1,0 +1,25 @@
+name: 'Create GitHub Release'
+description: 'Create a GitHub release with artifacts'
+
+inputs:
+  version:
+    description: 'Version to release'
+    required: true
+  git-access-token:
+    description: 'GitHub token for creating release'
+    required: true
+  artifacts-path:
+    description: 'Path to artifacts to upload'
+    required: false
+    default: 'build/libs/*'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Create GitHub Release
+      uses: ncipollo/create-release@v1
+      with:
+        artifacts: ${{ inputs.artifacts-path }}
+        generateReleaseNotes: true
+        tag: v${{ inputs.version }}
+        token: ${{ inputs.git-access-token }}

@@ -1,0 +1,48 @@
+name: 'Update Antora Version'
+description: 'Update docs/antora.yml version to match release version'
+
+inputs:
+  version:
+    description: 'Version to set in antora.yml'
+    required: true
+  git-access-token:
+    description: 'GitHub token for pushing changes'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Update Antora documentation version
+      shell: bash
+      env:
+        RELEASE_VERSION: ${{ inputs.version }}
+        GITHUB_TOKEN: ${{ inputs.git-access-token }}
+      run: |
+        # Checkout main branch
+        git checkout main
+        git pull origin main
+        
+        # Check if docs/antora.yml exists
+        if [ ! -f "docs/antora.yml" ]; then
+          echo "docs/antora.yml not found, skipping version update"
+          exit 0
+        fi
+        
+        # Update version in antora.yml
+        sed -i.bak "s/^version:.*/version: $RELEASE_VERSION/" docs/antora.yml
+        rm -f docs/antora.yml.bak
+        
+        # Check if there are changes
+        if git diff --quiet docs/antora.yml; then
+          echo "No changes to docs/antora.yml"
+          exit 0
+        fi
+        
+        # Commit and push
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add docs/antora.yml
+        git commit -m "docs: update Antora version to $RELEASE_VERSION"
+        git push origin main
+        
+        echo "Updated docs/antora.yml to version $RELEASE_VERSION"

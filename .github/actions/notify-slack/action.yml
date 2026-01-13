@@ -1,0 +1,40 @@
+name: 'Notify Slack'
+description: 'Send a notification to Slack'
+
+inputs:
+  webhook-url:
+    description: 'Slack webhook URL'
+    required: true
+  version:
+    description: 'Version that was released'
+    required: true
+  repository:
+    description: 'Repository name'
+    required: true
+  status:
+    description: 'Release status (success or failure)'
+    required: false
+    default: 'success'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Notify Slack
+      if: inputs.webhook-url != ''
+      uses: slackapi/slack-github-action@v2.0.0
+      with:
+        webhook: ${{ inputs.webhook-url }}
+        webhook-type: incoming-webhook
+        payload: |
+          {
+            "text": "Release ${{ inputs.status }}: ${{ inputs.repository }} v${{ inputs.version }}",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*Release ${{ inputs.status }}*\n${{ inputs.repository }} v${{ inputs.version }}"
+                }
+              }
+            ]
+          }

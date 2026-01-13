@@ -1,0 +1,24 @@
+name: 'Clone Release to Dist Repo'
+description: 'Clone GitHub release to a -dist repository'
+
+inputs:
+  git-access-token:
+    description: 'GitHub token with access to both repos'
+    required: true
+  source-repo:
+    description: 'Source repository (e.g., owner/repo)'
+    required: true
+  dest-repo:
+    description: 'Destination repository (e.g., owner/repo-dist)'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Clone release to dist repository
+      uses: andrewthetechie/gha-clone-releases@v1
+      with:
+        token: ${{ inputs.git-access-token }}
+        src_repo: ${{ inputs.source-repo }}
+        dest_repo: ${{ inputs.dest-repo }}
+        copy_assets: true
