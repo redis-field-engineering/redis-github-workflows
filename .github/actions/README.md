@@ -7,12 +7,9 @@ This directory contains modular, reusable composite actions for building and rel
 **Core Actions:**
 - 🔧 **setup-gradle** - Setup Java and Gradle with caching
 - 🏷️ **create-release-tag** - Create release tag using Axion
-- 🏗️ **gradle-build** - Build and publish with Gradle
-
-**Release & Deploy:**
 - 🚀 **jreleaser** - GitHub release, Maven Central deploy, Slack notifications
 
-**Documentation & Distribution:**
+**Optional Actions:**
 - 📝 **update-antora-version** - Update docs/antora.yml version
 - 📋 **clone-to-dist-repo** - Clone release to -dist repository
 
@@ -52,30 +49,6 @@ Create a release tag using Axion Release Plugin.
   with:
     version-increment: 'minor'
     git-access-token: ${{ secrets.GITHUB_TOKEN }}
-```
-
----
-
-### 🏗️ gradle-build
-Build and optionally publish with Gradle.
-
-**Inputs:**
-- `tasks` (optional, default: `build`) - Gradle tasks to run
-- `gpg-secret-key` (optional) - GPG secret key for signing
-- `gpg-public-key` (optional) - GPG public key
-- `gpg-passphrase` (optional) - GPG passphrase
-- `sonatype-username` (optional) - Sonatype username
-- `sonatype-password` (optional) - Sonatype password
-
-**Example:**
-```yaml
-- uses: redis-field-engineering/redis-github-workflows/.github/actions/gradle-build@main
-  with:
-    tasks: 'build publish'
-    gpg-secret-key: ${{ secrets.GPG_SECRET_KEY }}
-    gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
-    sonatype-username: ${{ secrets.SONATYPE_USERNAME }}
-    sonatype-password: ${{ secrets.SONATYPE_PASSWORD }}
 ```
 
 ---
@@ -205,9 +178,7 @@ jobs:
           git-access-token: ${{ secrets.GIT_ACCESS_TOKEN }}
 
       - name: Build
-        uses: redis-field-engineering/redis-github-workflows/.github/actions/gradle-build@main
-        with:
-          tasks: 'build'
+        run: ./gradlew build
 
       - name: Release with JReleaser
         uses: redis-field-engineering/redis-github-workflows/.github/actions/jreleaser@main
