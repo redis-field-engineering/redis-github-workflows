@@ -36,9 +36,12 @@ runs:
         if [ -n "${{ inputs.version }}" ]; then
           ./gradlew release -Prelease.version=${{ inputs.version }} -Prelease.disableChecks
         else
-          ./gradlew release -Prelease.versionIncrementer=increment${{ inputs.version-increment }} -Prelease.disableChecks
+          # Capitalize first letter of version-increment (patch -> Patch, minor -> Minor, major -> Major)
+          INCREMENT="${{ inputs.version-increment }}"
+          INCREMENT_CAPITALIZED="$(tr '[:lower:]' '[:upper:]' <<< ${INCREMENT:0:1})${INCREMENT:1}"
+          ./gradlew release -Prelease.versionIncrementer=increment${INCREMENT_CAPITALIZED} -Prelease.disableChecks
         fi
-        
+
         # Get the version that was just tagged
         VERSION=$(./gradlew currentVersion -q | grep "Project version:" | cut -d' ' -f3)
         echo "version=$VERSION" >> $GITHUB_OUTPUT
