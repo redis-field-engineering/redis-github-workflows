@@ -14,7 +14,7 @@ on:
         type: string
       version-increment:
         description: 'Version increment type (used if version is not specified)'
-        default: 'incrementPatch'
+        default: 'patch'
         required: false
         type: string
       gradle-build-tasks:
