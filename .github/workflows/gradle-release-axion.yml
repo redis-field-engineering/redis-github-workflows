@@ -59,6 +59,12 @@ on:
       slack-webhook:
         description: 'Slack webhook URL for notifications'
         required: false
+      docker-username:
+        description: 'Docker registry username (for bootBuildImage)'
+        required: false
+      docker-password:
+        description: 'Docker registry password (for bootBuildImage)'
+        required: false
 
 jobs:
   release:
@@ -88,6 +94,9 @@ jobs:
           git-access-token: ${{ secrets.git-access-token }}
 
       - name: Build
+        env:
+          DOCKER_USERNAME: ${{ secrets.docker-username }}
+          DOCKER_PASSWORD: ${{ secrets.docker-password }}
         run: ./gradlew ${{ inputs.gradle-build-tasks }}
 
       - name: Release with JReleaser
