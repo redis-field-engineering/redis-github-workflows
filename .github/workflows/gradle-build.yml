@@ -5,12 +5,12 @@ on:
     inputs:
       java-version:
         description: 'Java version to use'
-        default: '21'
+        default: '17'
         required: false
         type: string
       gradle-tasks:
         description: 'Gradle tasks to run'
-        default: 'clean build'
+        default: 'build'
         required: false
         type: string
 

@@ -1,0 +1,128 @@
+name: Gradle Release (Axion)
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        description: 'Java version to use'
+        default: '17'
+        required: false
+        type: string
+      version:
+        description: 'Release version (e.g., 0.5.1). Leave empty to auto-increment.'
+        required: false
+        type: string
+      version-increment:
+        description: 'Version increment type (used if version is not specified)'
+        default: 'patch'
+        required: false
+        type: string
+      gradle-build-tasks:
+        description: 'Gradle tasks to run after creating release tag (e.g., "build publish")'
+        default: 'build'
+        required: false
+        type: string
+      jreleaser-version:
+        description: 'JReleaser version to use'
+        default: 'latest'
+        required: false
+        type: string
+      clone-to-dist-repo:
+        description: 'Whether to clone release to a -dist repository'
+        default: true
+        required: false
+        type: boolean
+      update-antora-version:
+        description: 'Whether to update docs/antora.yml version after release'
+        default: true
+        required: false
+        type: boolean
+    secrets:
+      git-access-token:
+        description: 'GitHub token with write access'
+        required: true
+      gpg-passphrase:
+        description: 'GPG passphrase for signing'
+        required: true
+      gpg-public-key:
+        description: 'GPG public key'
+        required: true
+      gpg-secret-key:
+        description: 'GPG secret key'
+        required: true
+      sonatype-username:
+        description: 'Sonatype username for Maven Central'
+        required: false
+      sonatype-password:
+        description: 'Sonatype password for Maven Central'
+        required: false
+      slack-webhook:
+        description: 'Slack webhook URL for notifications'
+        required: false
+      docker-username:
+        description: 'Docker registry username (for bootBuildImage)'
+        required: false
+      docker-password:
+        description: 'Docker registry password (for bootBuildImage)'
+        required: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.git-access-token }}
+
+      - name: Setup Gradle
+        uses: redis-field-engineering/redis-github-workflows/.github/actions/setup-gradle@main
+        with:
+          java-version: ${{ inputs.java-version }}
+
+      - name: Create Release Tag
+        id: release
+        uses: redis-field-engineering/redis-github-workflows/.github/actions/create-release-tag@main
+        with:
+          version: ${{ inputs.version }}
+          version-increment: ${{ inputs.version-increment }}
+          git-access-token: ${{ secrets.git-access-token }}
+
+      - name: Build
+        env:
+          DOCKER_USERNAME: ${{ secrets.docker-username }}
+          DOCKER_PASSWORD: ${{ secrets.docker-password }}
+        run: ./gradlew ${{ inputs.gradle-build-tasks }}
+
+      - name: Release with JReleaser
+        uses: redis-field-engineering/redis-github-workflows/.github/actions/jreleaser@main
+        with:
+          version: ${{ steps.release.outputs.version }}
+          git-access-token: ${{ secrets.git-access-token }}
+          gpg-secret-key: ${{ secrets.gpg-secret-key }}
+          gpg-public-key: ${{ secrets.gpg-public-key }}
+          gpg-passphrase: ${{ secrets.gpg-passphrase }}
+          sonatype-username: ${{ secrets.sonatype-username }}
+          sonatype-password: ${{ secrets.sonatype-password }}
+          slack-webhook: ${{ secrets.slack-webhook }}
+          jreleaser-version: ${{ inputs.jreleaser-version }}
+
+      - name: Clone to Dist Repo
+        if: inputs.clone-to-dist-repo
+        uses: redis-field-engineering/redis-github-workflows/.github/actions/clone-to-dist-repo@main
+        with:
+          git-access-token: ${{ secrets.git-access-token }}
+          source-repo: ${{ github.repository }}
+          dest-repo: ${{ github.repository }}-dist
+
+      - name: Update Antora Version
+        if: inputs.update-antora-version
+        uses: redis-field-engineering/redis-github-workflows/.github/actions/update-antora-version@main
+        with:
+          version: ${{ steps.release.outputs.version }}
+          git-access-token: ${{ secrets.git-access-token }}
