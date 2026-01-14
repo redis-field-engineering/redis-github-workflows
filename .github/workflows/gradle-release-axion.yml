@@ -5,7 +5,7 @@ on:
     inputs:
       java-version:
         description: 'Java version to use'
-        default: '21'
+        default: '17'
         required: false
         type: string
       version:
@@ -29,12 +29,12 @@ on:
         type: string
       clone-to-dist-repo:
         description: 'Whether to clone release to a -dist repository'
-        default: false
+        default: true
         required: false
         type: boolean
       update-antora-version:
         description: 'Whether to update docs/antora.yml version after release'
-        default: false
+        default: true
         required: false
         type: boolean
     secrets:
